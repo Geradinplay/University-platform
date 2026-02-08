@@ -511,36 +511,3 @@ td {
   background-color: #4a8ac2;
   transform: translateY(-1px);
 }
-
-.scroll-list {
-  flex: 1 1 0;
-  max-height: 420px;
-  min-width: 260px;
-  overflow-y: auto;
-  background: #f8fcfd;
-  border: 1px solid #d3e0ea;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(91,155,213,0.08);
-  padding: 18px 16px;
-  margin-top: 8px;
-}
-
-.scroll-list h2 {
-  margin-top: 0;
-  margin-bottom: 14px;
-  font-size: 1.2em;
-  color: #334e68;
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 6px;
-}
-
-.scroll-list-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 15px;
-  color: #4a657e;
-}
-
-.scroll-list-item:last-child {
-  border-bottom: none;
-}
