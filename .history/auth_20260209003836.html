@@ -56,7 +56,7 @@
       const errorDiv = document.getElementById('login-error');
       errorDiv.textContent = '';
       try {
-        const resp = await fetch('http://localhost:8080/api/auth/login', {
+        const resp = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({username, password})
@@ -67,19 +67,15 @@
           window.location.href = 'index.html';
         } else {
           let errData = {};
-          const contentType = resp.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            try {
-              errData = await resp.json();
-            } catch (parseErr) {
-              errorDiv.textContent = `Ошибка входа (status: ${resp.status})`;
-              console.error('Login error:', parseErr);
-              return;
-            }
-            errorDiv.textContent = errData.message || `Ошибка входа (status: ${resp.status})`;
-          } else {
+          try {
+            errData = await resp.json();
+          } catch (parseErr) {
+            // Если не JSON, покажем статус
             errorDiv.textContent = `Ошибка входа (status: ${resp.status})`;
+            console.error('Login error:', parseErr);
+            return;
           }
+          errorDiv.textContent = errData.message || `Ошибка входа (status: ${resp.status})`;
         }
       } catch (e) {
         errorDiv.textContent = 'Ошибка соединения с сервером';
@@ -95,7 +91,7 @@
       const errorDiv = document.getElementById('register-error');
       errorDiv.textContent = '';
       try {
-        const resp = await fetch('http://localhost:8080/api/auth/register', {
+        const resp = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({username, email, password})
@@ -106,19 +102,14 @@
           window.location.href = 'index.html';
         } else {
           let errData = {};
-          const contentType = resp.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            try {
-              errData = await resp.json();
-            } catch (parseErr) {
-              errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
-              console.error('Register error:', parseErr);
-              return;
-            }
-            errorDiv.textContent = errData.message || `Ошибка регистрации (status: ${resp.status})`;
-          } else {
+          try {
+            errData = await resp.json();
+          } catch (parseErr) {
             errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
+            console.error('Register error:', parseErr);
+            return;
           }
+          errorDiv.textContent = errData.message || `Ошибка регистрации (status: ${resp.status})`;
         }
       } catch (e) {
         errorDiv.textContent = 'Ошибка соединения с сервером';

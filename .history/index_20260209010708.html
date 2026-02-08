@@ -16,12 +16,6 @@
     </div>
     <!-- Вкладки для формы, буфера и настроек -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
-      <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
-      <button class="tab-btn" onclick="window.openTab('add-classroom-tab')">Добавить аудиторию</button>
-      <button class="tab-btn" onclick="window.openTab('add-professor-tab')">Добавить преподавателя</button>
-      <button class="tab-btn" onclick="window.openTab('add-subject-tab')">Добавить предмет</button>
-    </div>
 
     <!-- Содержимое вкладки "Создать занятие" -->
     <div id="lesson-tab-content" class="tab-content active">
@@ -227,11 +221,6 @@
     if (!localStorage.getItem('jwt')) {
       window.location.href = 'auth.html';
     }
-    // Кнопка выхода
-    document.getElementById('logout-btn').onclick = function() {
-      localStorage.removeItem('jwt');
-      window.location.href = 'auth.html';
-    };
   </script>
 </body>
 </html>

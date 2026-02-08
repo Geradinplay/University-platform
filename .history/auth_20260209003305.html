@@ -56,7 +56,7 @@
       const errorDiv = document.getElementById('login-error');
       errorDiv.textContent = '';
       try {
-        const resp = await fetch('http://localhost:8080/api/auth/login', {
+        const resp = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({username, password})
@@ -66,24 +66,11 @@
           localStorage.setItem('jwt', data.token);
           window.location.href = 'index.html';
         } else {
-          let errData = {};
-          const contentType = resp.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            try {
-              errData = await resp.json();
-            } catch (parseErr) {
-              errorDiv.textContent = `Ошибка входа (status: ${resp.status})`;
-              console.error('Login error:', parseErr);
-              return;
-            }
-            errorDiv.textContent = errData.message || `Ошибка входа (status: ${resp.status})`;
-          } else {
-            errorDiv.textContent = `Ошибка входа (status: ${resp.status})`;
-          }
+          const errData = await resp.json();
+          errorDiv.textContent = errData.message || 'Ошибка входа';
         }
       } catch (e) {
         errorDiv.textContent = 'Ошибка соединения с сервером';
-        console.error('Login fetch error:', e);
       }
     };
 
@@ -95,7 +82,7 @@
       const errorDiv = document.getElementById('register-error');
       errorDiv.textContent = '';
       try {
-        const resp = await fetch('http://localhost:8080/api/auth/register', {
+        const resp = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({username, email, password})
@@ -105,24 +92,11 @@
           localStorage.setItem('jwt', data.token);
           window.location.href = 'index.html';
         } else {
-          let errData = {};
-          const contentType = resp.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            try {
-              errData = await resp.json();
-            } catch (parseErr) {
-              errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
-              console.error('Register error:', parseErr);
-              return;
-            }
-            errorDiv.textContent = errData.message || `Ошибка регистрации (status: ${resp.status})`;
-          } else {
-            errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
-          }
+          const errData = await resp.json();
+          errorDiv.textContent = errData.message || 'Ошибка регистрации или пользователь уже существует';
         }
       } catch (e) {
         errorDiv.textContent = 'Ошибка соединения с сервером';
-        console.error('Register fetch error:', e);
       }
     };
   </script>
