@@ -56,7 +56,7 @@ export async function getSchedule() {
 
 export async function createLesson(lessonData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/schedule`, { 
+        const response = await fetch(`${API_BASE_URL}/api/schedule`, { // ИЗМЕНЕНО: URL
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -73,14 +73,14 @@ export async function createLesson(lessonData) {
     }
 }
 
-export async function updateLessonDay(lessonId, dataToUpdate) { // ИЗМЕНЕНО: dataToUpdate
+export async function updateLessonDay(lessonId, dataToUpdate) { // ИЗМЕНЕНО: dataToUpdate вместо newDay
     try {
-        const response = await fetch(`${API_BASE_URL}/api/schedule/${lessonId}`, { 
-            method: 'PUT', // Метод PUT
+        const response = await fetch(`${API_BASE_URL}/api/schedule/${lessonId}`, { // ИЗМЕНЕНО: URL
+            method: 'PUT', // ИЗМЕНЕНО: Метод на PUT
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(dataToUpdate), // Отправляем полный объект
+            body: JSON.stringify(dataToUpdate), // ИЗМЕНЕНО: Отправляем весь объект для PUT
         });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -94,7 +94,7 @@ export async function updateLessonDay(lessonId, dataToUpdate) { // ИЗМЕНЕ�
 
 export async function deleteLesson(lessonId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/schedule/${lessonId}`, { 
+        const response = await fetch(`${API_BASE_URL}/api/schedule/${lessonId}`, { // ИЗМЕНЕНО: URL
             method: 'DELETE',
         });
         if (!response.ok) {
@@ -107,9 +107,9 @@ export async function deleteLesson(lessonId) {
     }
 }
 
-export async function getBreaks() { 
+export async function getBreaks() { // ДОБАВЛЕНО
     try {
-        const response = await fetch(`${API_BASE_URL}/api/break`); 
+        const response = await fetch(`${API_BASE_URL}/api/break`); // ИЗМЕНЕНО: URL
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -120,9 +120,9 @@ export async function getBreaks() {
     }
 }
 
-export async function createBreak(breakData) { 
+export async function createBreak(breakData) { // ДОБАВЛЕНО
     try {
-        const response = await fetch(`${API_BASE_URL}/api/break`, { 
+        const response = await fetch(`${API_BASE_URL}/api/break`, { // ИЗМЕНЕНО: URL
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -139,9 +139,9 @@ export async function createBreak(breakData) {
     }
 }
 
-export async function deleteBreak(breakId) { 
+export async function deleteBreak(breakId) { // ДОБАВЛЕНО
     try {
-        const response = await fetch(`${API_BASE_URL}/api/break/${breakId}`, { 
+        const response = await fetch(`${API_BASE_URL}/api/break/${breakId}`, { // ИЗМЕНЕНО: URL
             method: 'DELETE',
         });
         if (!response.ok) {

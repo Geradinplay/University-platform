@@ -43,55 +43,35 @@ export async function drop(ev) {
     }
 
     const lessonId = el.id.replace('lesson-', '');
-    const originalParent = el.parentNode; // Родитель ДО обработки события drop
+    const originalParent = el.parentNode;
     const oldDay = el.dataset.day ? parseInt(el.dataset.day) : null;
 
     let newDay;
-    let targetContainer;
+    // ИЗМЕНЕНО: Целевой контейнер для буфера - это теперь #buffer-content
+    let targetContainer = ev.target.closest('.day') || ev.target.closest('#buffer-content'); 
 
-    // Надежно определяем целевой контейнер для операции drop
-    if (ev.currentTarget.id === 'buffer-content') {
-        targetContainer = ev.currentTarget; // Сброшено непосредственно в буфер (сам элемент буфера)
-    } else if (ev.currentTarget.classList.contains('dropzone') && ev.currentTarget.tagName === 'TD') {
-        targetContainer = ev.currentTarget.querySelector('.day'); // Сброшено в ячейку дня (TD), находим внутренний div.day
-    } else if (ev.target.closest('.day')) { // Сброшено на дочерний элемент внутри div.day (например, на другое занятие)
-        targetContainer = ev.target.closest('.day');
-    } else if (ev.target.id === 'buffer-content') { // Сброшено в буфер (если ev.target - это сам элемент буфера)
-        targetContainer = ev.target;
-    }
-    
     if (!targetContainer) {
-        console.warn("No valid drop target found. Drop event target:", ev.target, "Current target:", ev.currentTarget);
-        return; 
+        console.warn("No valid drop target found (day or buffer).");
+        return;
     }
 
-    // --- Критично: Удаляем любой блок перерыва, связанный с перетаскиваемым занятием, из его ИСХОДНОГО родителя.
-    // Это должно произойти ДО проверки коллизий и ДО перемещения занятия из originalParent,
-    // чтобы el.nextSibling ссылался на правильный элемент в исходном DOM.
-    // Это гарантирует, что исходный слот действительно "очищен" для последующих проверок коллизий в целевом контейнере.
+    // Удаление перерыва из предыдущего места (если был в дне)
     if (originalParent && originalParent.classList.contains('day')) {
         const nextSiblingInOldParent = el.nextSibling;
         if (nextSiblingInOldParent && nextSiblingInOldParent.classList.contains('break-block')) {
             nextSiblingInOldParent.remove();
-            console.log(`Debug: Removed break-block after lesson-${lessonId} (oldDay: ${oldDay})`);
-        } else {
-            console.log(`Debug: No break-block found after lesson-${lessonId} (oldDay: ${oldDay}) for removal.`);
         }
     }
-    // --- Конец критического удаления перерыва ---
 
-    if (targetContainer.id === 'buffer-content') { 
+    if (targetContainer.id === 'buffer-content') { // ИЗМЕНЕНО: ID буфера
         newDay = 0; // Для буфера
-        targetContainer.appendChild(el); 
+        targetContainer.appendChild(el); // Добавляем прямо в #buffer-content
     } else { // Сброшено в ячейку дня
         const timeStr = el.querySelector('.lesson-time').innerText;
         // Проверка наличия 'allowCollision' элемента, так как он находится в 'settings-content'
         const allowCollision = document.getElementById('settings-content')?.querySelector('#allowCollision')?.checked || false; 
         
-        // --- Проверка коллизий ---
-        // Передаем el.id в checkCollision, чтобы он игнорировал перетаскиваемый элемент
-        // (актуально для перемещений внутри одного контейнера).
-        if (!allowCollision && checkCollision(timeStr, targetContainer, el.id)) {
+        if (!allowCollision && checkCollision(timeStr, targetContainer)) {
             alert("Ошибка! В это время уже есть другое занятие или перерыв.");
             return;
         }
@@ -132,13 +112,22 @@ export async function drop(ev) {
     // ИЗМЕНЕНО: Обновляем data-day и отправляем запрос на сервер, если день изменился
     if (oldDay !== newDay) {
         el.dataset.day = newDay;
+        // Собираем полный объект для PUT запроса, как требует ваша API-сводка.
+        // startTime и endTime теперь берем из dataset карточки.
         const updatedLessonData = {
             startTime: el.dataset.startTime, 
             endTime: el.dataset.endTime,    
             day: newDay,
-        };
-        try {
-            await updateLessonDay(lessonId, updatedLessonData); // Отправляем полный объект
+            // Per API spec, PUT /api/schedule/{id} requires startTime, endTime, day.
+            // Other fields like subjectId, professorId, classroomId might also be needed by the server
+            // if it expects a full object for PUT, even if they aren't changed.
+            // Based on the example, these 3 fields are enough for a PUT.
+            // If the server still complains (e.g., HTTP 500 for missing fields),
+            // you might need to add:
+            // subjectId: parseInt(el.dataset.subjectId),
+            // professorId: parseInt(el.dataset.professorId),
+            // classroomId: parseInt(el.dataset.classroomId),
+            // This would require fetching the full lesson data first or storing it on the element.
         } catch (error) {
             alert("Не удалось обновить день занятия на сервере: " + error.message);
             console.error("Failed to update lesson day on server:", error);

@@ -308,39 +308,26 @@ td {
 /* Контекстное меню */
 .context-menu {
   display: none;
-  position: fixed; /* Используем fixed для позиционирования относительно viewport */
-  background-color: #ffffff;
+  position: fixed;
+  background-color: white;
   border: 1px solid #d3e0ea;
   border-radius: 6px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   padding: 5px 0;
-  min-width: 150px; /* Немного увеличим ширину меню */
-  top: 0; /* Добавлено для корректного позиционирования */
-  left: 0; /* Добавлено для корректного позиционирования */
 }
 
-.context-menu button { /* Стилизуем option как button */
+.context-menu option {
   display: block;
-  width: 100%;
   padding: 10px 20px;
   cursor: pointer;
   color: #334e68;
   background: none;
   border: none;
-  text-align: left; /* Выравнивание текста кнопки */
   font-size: 14px;
   transition: background-color 0.2s;
 }
 
-.context-menu button:hover {
+.context-menu option:hover {
   background-color: #f0f4f8;
-}
-
-.context-menu button.delete { /* Красная кнопка удаления */
-  color: #dc3545; /* Красный цвет текста */
-}
-.context-menu button.delete:hover {
-  background-color: #fae0e0; /* Светло-красный фон при наведении */
-  color: #c82333; /* Темнее красный текст */
 }

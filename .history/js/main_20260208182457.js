@@ -2,10 +2,10 @@ import { populateSelect } from './selectPopulator.js';
 import { allowDrop, drag, drop } from './dragDropHandler.js';
 import { addNewLesson } from './lessonFormHandler.js';
 import { setupContextMenu, deleteItem } from './contextMenuHandler.js';
-import { getProfessors, getClassrooms, getSchedule, getSubjects } from './api.js'; 
+import { getProfessors, getClassrooms, getSchedule, getSubjects } from './api.js';
 import { parseTimeToMinutes } from './utils.js';
 
-// ДОБАВЛЕНО: Функция для управления вкладками (перенесена из tabManager.js)
+// ДОБАВЛЕНО: Функция для управления вкладками
 export function openTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -15,7 +15,7 @@ export function openTab(tabId) {
 }
 
 // Делаем функции глобально доступными для встроенных обработчиков событий HTML
-window.openTab = openTab; 
+window.openTab = openTab;
 window.allowDrop = allowDrop;
 window.drag = drag;
 window.drop = drop;
@@ -36,11 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupContextMenu();
 
         // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
-        openTab('lesson-tab-content'); 
+        openTab('lesson-tab-content');
 
         const schedule = await getSchedule();
         const bufferContent = document.getElementById('buffer-content'); // Целевой контейнер для буфера
-        const dayContainers = document.querySelectorAll('.table-container tbody td .day'); 
+        const dayContainers = document.querySelectorAll('.table-container tbody td .day');
 
         schedule.forEach(lessonData => {
             // Проверка на корректность данных урока
@@ -69,8 +69,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             d.id = "lesson-" + lessonData.id;
             d.draggable = true;
             d.ondragstart = window.drag;
-            d.ondragover = window.allowDrop; 
-            d.ondrop = window.drop; 
+            d.ondragover = window.allowDrop;
+            d.ondrop = window.drop;
             d.dataset.day = lessonData.day;
             d.dataset.subjectId = lessonData.subject.id;
             d.dataset.professorId = lessonData.professor.id;
@@ -108,9 +108,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             targetContainer.insertBefore(d, insertReferenceNode);
 
             // Если занятие в дне, добавляем перерыв, если включена опция
-            if (lessonData.day !== 0 && document.getElementById('breakToggle')?.checked) {
+            const settingsContent = document.getElementById('settings-content'); // ДОБАВЛЕНО
+            if (lessonData.day !== 0 && settingsContent?.querySelector('#breakToggle')?.checked) { // ИЗМЕНЕНО: Доступ к breakToggle
                 if (!(d.nextSibling && d.nextSibling.classList.contains('break-block'))) {
-                    const min = document.getElementById('breakDuration')?.value || 10;
+                    const min = settingsContent?.querySelector('#breakDuration')?.value || 10; // ИЗМЕНЕНО: Доступ к breakDuration
                     const b = document.createElement('div');
                     b.className = 'break-block';
                     b.innerText = `ПЕРЕРЫВ: ${min} МИН.`;

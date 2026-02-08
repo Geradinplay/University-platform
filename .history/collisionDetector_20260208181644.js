@@ -5,18 +5,16 @@ function parseBreakDuration(breakText) {
     return match ? parseInt(match[1]) : 0;
 }
 
-// ДОБАВЛЕНО: draggedElementId для игнорирования элемента при проверке коллизий
-export function checkCollision(newTimeStr, container, draggedElementId = null) {
+export function checkCollision(newTimeStr, container) {
     const [newStartMin, newEndMin] = newTimeStr.split('-').map(parseTimeToMinutes);
     const dayElements = container.children;
 
     let currentLogicalTime = 0;
 
     // Проверка состояния чекбоксов "Автоматические перерывы" и "Разрешить пересечения во времени"
-    // ИЗМЕНЕНО: Эти элементы теперь находятся во вкладке #settings-content
-    const settingsContent = document.getElementById('settings-content');
-    const breakToggleEnabled = settingsContent?.querySelector('#breakToggle')?.checked || false;
-    const allowCollision = settingsContent?.querySelector('#allowCollision')?.checked || false;
+    // ИЗМЕНЕНО: Теперь эти элементы находятся в #settings-content
+    const breakToggleEnabled = document.getElementById('breakToggle')?.checked || false;
+    const allowCollision = document.getElementById('allowCollision')?.checked || false;
 
     if (allowCollision) {
         return false; // Если разрешены коллизии, всегда возвращаем false
@@ -24,11 +22,6 @@ export function checkCollision(newTimeStr, container, draggedElementId = null) {
 
     for (let i = 0; i < dayElements.length; i++) {
         const element = dayElements[i];
-
-        // ДОБАВЛЕНО: Игнорируем сам перетаскиваемый элемент при проверке коллизий
-        if (draggedElementId && element.id === draggedElementId) {
-            continue;
-        }
 
         if (element.classList.contains('lesson')) {
             const timeText = element.querySelector('.lesson-time')?.innerText;

@@ -64,7 +64,7 @@ export async function addNewLesson() {
         d.dataset.subjectId = newLessonFromServer.subject.id;
         d.dataset.professorId = newLessonFromServer.professor.id;
         d.dataset.classroomId = newLessonFromServer.classroom.id;
-        // ДОБАВЛЕНО: Добавляем startTime и endTime в dataset для dragDropHandler
+        // Добавляем startTime и endTime в dataset для dragDropHandler
         d.dataset.startTime = newLessonFromServer.startTime;
         d.dataset.endTime = newLessonFromServer.endTime;
 

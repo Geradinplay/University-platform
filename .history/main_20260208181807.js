@@ -15,7 +15,7 @@ export function openTab(tabId) {
 }
 
 // Делаем функции глобально доступными для встроенных обработчиков событий HTML
-window.openTab = openTab; 
+window.openTab = openTab; // ДОБАВЛЕНО: Делаем openTab глобальной
 window.allowDrop = allowDrop;
 window.drag = drag;
 window.drop = drop;

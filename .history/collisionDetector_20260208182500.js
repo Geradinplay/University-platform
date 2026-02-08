@@ -5,8 +5,7 @@ function parseBreakDuration(breakText) {
     return match ? parseInt(match[1]) : 0;
 }
 
-// ДОБАВЛЕНО: draggedElementId для игнорирования элемента при проверке коллизий
-export function checkCollision(newTimeStr, container, draggedElementId = null) {
+export function checkCollision(newTimeStr, container) {
     const [newStartMin, newEndMin] = newTimeStr.split('-').map(parseTimeToMinutes);
     const dayElements = container.children;
 
@@ -24,11 +23,6 @@ export function checkCollision(newTimeStr, container, draggedElementId = null) {
 
     for (let i = 0; i < dayElements.length; i++) {
         const element = dayElements[i];
-
-        // ДОБАВЛЕНО: Игнорируем сам перетаскиваемый элемент при проверке коллизий
-        if (draggedElementId && element.id === draggedElementId) {
-            continue;
-        }
 
         if (element.classList.contains('lesson')) {
             const timeText = element.querySelector('.lesson-time')?.innerText;

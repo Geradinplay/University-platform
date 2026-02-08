@@ -12,8 +12,8 @@ export function setupContextMenu() {
             targetToDelete = item; // Сохраняем элемент
             const m = document.getElementById('context-menu');
             m.style.display = 'block'; 
-            m.style.left = e.clientX + 'px'; // ИЗМЕНЕНО: Используем clientX для точного позиционирования
-            m.style.top = e.clientY + 'px';  // ИЗМЕНЕНО: Используем clientY для точного позиционирования
+            m.style.left = e.pageX + 'px'; // Позиционируем по координатам клика
+            m.style.top = e.pageY + 'px';
         }
     };
     window.onclick = () => { document.getElementById('context-menu').style.display = 'none'; };
@@ -50,6 +50,10 @@ export async function deleteItem() {
         // Если бы перерывы с сервера имели ID и это был бы такой перерыв,
         // то здесь был бы вызов await deleteBreak(breakId);
         try {
+            // Если бы перерыв был из API, он бы имел data-break-id
+            // const breakId = targetToDelete.dataset.breakId; 
+            // if (breakId) { await deleteBreak(breakId); } // Если перерыв с серверным ID
+            
             targetToDelete.remove(); // Удаляем только перерыв из DOM
             targetToDelete = null; // Очищаем ссылку
             console.log("Client-side break block removed.");

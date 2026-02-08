@@ -5,7 +5,7 @@ import { setupContextMenu, deleteItem } from './contextMenuHandler.js';
 import { getProfessors, getClassrooms, getSchedule, getSubjects } from './api.js'; 
 import { parseTimeToMinutes } from './utils.js';
 
-// ДОБАВЛЕНО: Функция для управления вкладками (перенесена из tabManager.js)
+// ДОБАВЛЕНО: Функция для управления вкладками
 export function openTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -15,7 +15,7 @@ export function openTab(tabId) {
 }
 
 // Делаем функции глобально доступными для встроенных обработчиков событий HTML
-window.openTab = openTab; 
+window.openTab = openTab; // ДОБАВЛЕНО: Делаем openTab глобальной
 window.allowDrop = allowDrop;
 window.drag = drag;
 window.drop = drop;
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupContextMenu();
 
         // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
-        openTab('lesson-tab-content'); 
+        openTab('lesson-tab-content'); // ДОБАВЛЕНО
 
         const schedule = await getSchedule();
         const bufferContent = document.getElementById('buffer-content'); // Целевой контейнер для буфера
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             d.dataset.subjectId = lessonData.subject.id;
             d.dataset.professorId = lessonData.professor.id;
             d.dataset.classroomId = lessonData.classroom.id;
-            // ДОБАВЛЕНО: Добавляем startTime и endTime в dataset для dragDropHandler
+            // Добавляем startTime и endTime в dataset для dragDropHandler
             d.dataset.startTime = lessonData.startTime;
             d.dataset.endTime = lessonData.endTime;
 
