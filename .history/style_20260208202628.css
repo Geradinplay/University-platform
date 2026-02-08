@@ -523,6 +523,7 @@ td {
 
 .scroll-list-window {
   flex: 1 1 0;
+
   min-width: 260px;
   height: 420px;
   display: flex;
