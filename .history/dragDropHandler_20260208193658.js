@@ -156,12 +156,11 @@ export async function drop(ev) {
                 return;
             }
 
-            const newLessonStartTime = parseTimeToMinutes(el.dataset.startTime);
+            const newLessonStartTime = parseTimeToMinutes(timeStr.split('-')[0]);
             let insertReferenceNode = null;
 
-            // --- Исправленная сортировка: ищем место по времени среди всех элементов с dataset.startTime ---
             for (const child of Array.from(targetContainer.children)) {
-                if (child.dataset && child.dataset.startTime) {
+                if (child.dataset.startTime) {
                     const existingItemTime = parseTimeToMinutes(child.dataset.startTime);
                     if (newLessonStartTime < existingItemTime) {
                         insertReferenceNode = child;

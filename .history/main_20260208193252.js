@@ -57,42 +57,7 @@ window.createBreakManual = async function() {
             positionAfterLessonId: null // Можно добавить выбор после какого урока, если нужно
         });
         alert('Перерыв успешно добавлен!');
-
-        // --- Добавить перерыв в расписание без обновления страницы ---
-        const dayContainers = document.querySelectorAll('.table-container tbody td .day');
-        if (day >= 1 && day <= dayContainers.length) {
-            const dayContainer = dayContainers[day - 1];
-            // Найти занятие, после которого должен идти перерыв
-            let lessonDiv = null;
-            for (const child of dayContainer.children) {
-                if (
-                    child.classList.contains('lesson') &&
-                    child.dataset.endTime === newBreak.startTime
-                ) {
-                    lessonDiv = child;
-                    break;
-                }
-            }
-            // Если есть lesson, вставить break-block после него, иначе просто добавить в конец дня
-            const b = document.createElement('div');
-            b.className = 'break-block';
-            b.id = "break-" + newBreak.id;
-            b.innerText = `ПЕРЕРЫВ: ${duration} МИН.`;
-            b.dataset.breakId = newBreak.id;
-            b.dataset.day = newBreak.day;
-            b.dataset.startTime = newBreak.startTime;
-            b.dataset.endTime = newBreak.endTime;
-            b.dataset.duration = duration;
-            b.draggable = true;
-            b.ondragstart = window.drag;
-            b.ondragover = window.allowDrop;
-            b.ondrop = window.drop;
-            if (lessonDiv) {
-                dayContainer.insertBefore(b, lessonDiv.nextSibling);
-            } else {
-                dayContainer.appendChild(b);
-            }
-        }
+        // Можно добавить обновление расписания или перерывов
     } catch (error) {
         alert('Ошибка при создании перерыва: ' + error.message);
     }
