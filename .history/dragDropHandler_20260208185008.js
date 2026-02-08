@@ -71,15 +71,13 @@ export async function drop(ev) {
         if (nextSiblingInOldParent && nextSiblingInOldParent.classList.contains('break-block')) {
             const breakIdToDelete = nextSiblingInOldParent.dataset.breakId;
             if (breakIdToDelete) {
-                console.log("DragDrop: Attempting to delete break with ID:", breakIdToDelete); // ДОБАВЛЕНО
                 try {
-                    await deleteBreak(breakIdToDelete);
+                    await deleteBreak(breakIdToDelete); // ДОБАВЛЕНО: Удаление перерыва на сервере
                     console.log(`Debug: Server break ${breakIdToDelete} deleted.`);
                 } catch (error) {
                     console.error("Failed to delete break from server on lesson move:", error);
+                    // alert("Не удалось удалить перерыв с сервера при перемещении занятия.");
                 }
-            } else {
-                console.warn("DragDrop: No breakId found for break-block in old parent."); // ДОБАВЛЕНО
             }
             nextSiblingInOldParent.remove();
             console.log(`Debug: Removed break-block after lesson-${lessonId} (oldDay: ${oldDay}) from DOM.`);

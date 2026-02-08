@@ -162,11 +162,8 @@ export async function deleteLesson(lessonId) {
 
 // ДОБАВЛЕНО: Реализация deleteBreak
 export async function deleteBreak(breakId) {
-  console.log("Mock API: Received deleteBreak request for ID:", breakId); // ДОБАВЛЕНО
   const initialLength = mockBreaks.length;
-  console.log("Mock API: mockBreaks before filter:", JSON.stringify(mockBreaks)); // ДОБАВЛЕНО
   mockBreaks = mockBreaks.filter(b => b.id != breakId);
-  console.log("Mock API: mockBreaks after filter:", JSON.stringify(mockBreaks)); // ДОБАВЛЕНО
   if (mockBreaks.length < initialLength) {
     console.log(`Mock API: Break ${breakId} deleted.`);
     return Promise.resolve(true);

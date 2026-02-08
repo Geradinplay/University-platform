@@ -36,15 +36,13 @@ export async function deleteItem() {
                 if (nextSibling && nextSibling.classList.contains('break-block')) {
                     const breakIdToDelete = nextSibling.dataset.breakId;
                     if (breakIdToDelete) {
-                        console.log("ContextMenu: Attempting to delete associated break with ID:", breakIdToDelete); // ДОБАВЛЕНО
                         try {
                             await deleteBreak(breakIdToDelete); // ДОБАВЛЕНО: Удаление перерыва на сервере
                             console.log(`Debug: Server break ${breakIdToDelete} deleted with lesson.`);
                         } catch (error) {
                             console.error("Failed to delete break from server with lesson:", error);
+                            // alert("Не удалось удалить связанный перерыв с сервера.");
                         }
-                    } else {
-                        console.warn("ContextMenu: No breakId found for associated break-block."); // ДОБАВЛЕНО
                     }
                     nextSibling.remove();
                 }
@@ -58,7 +56,6 @@ export async function deleteItem() {
     } else if (targetToDelete.classList.contains('break-block')) {
         const breakId = targetToDelete.dataset.breakId; // Получаем breakId из dataset
         if (breakId) {
-            console.log("ContextMenu: Attempting to delete break with ID:", breakId); // ДОБАВЛЕНО
             try {
                 await deleteBreak(breakId); // ДОБАВЛЕНО: Удаление перерыва на сервере
                 targetToDelete.remove();
