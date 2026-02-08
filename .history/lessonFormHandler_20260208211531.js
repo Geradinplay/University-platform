@@ -51,12 +51,12 @@ export async function addNewLesson() {
     }
 
     const lessonData = {
-        startTime: formattedStartTime,
+        startTime: formattedStartTime, // Передаем startTime и endTime отдельно
         endTime: formattedEndTime,
         day: 0, // Для буфера
-        subjectId: Number(subjectId),    // Преобразуем к числу
-        professorId: Number(professorId),
-        classroomId: Number(classroomId)
+        subjectId: subjectId, // Не преобразуем в число!
+        professorId: professorId,
+        classroomId: classroomId
     };
 
     try {

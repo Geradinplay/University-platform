@@ -136,8 +136,9 @@ window.addProfessor = async function() {
         await createProfessor({ name });
         document.getElementById('newProfessorName').value = '';
         alert('Преподаватель добавлен!');
+        // Обновить список
         loadProfessorList(0);
-        // Обновить select (используем name как value)
+        // Обновить select
         const professors = await getProfessors();
         populateSelect('teacherSelect', professors, 'name');
     } catch (err) {
@@ -155,10 +156,8 @@ window.addSubject = async function() {
         await createSubject({ name });
         document.getElementById('newSubjectName').value = '';
         alert('Предмет добавлен!');
+        // Обновить список
         loadSubjectList(0);
-        // Обновить select (используем name как value)
-        const subjects = await getSubjects();
-        populateSelect('subjectSelect', subjects, 'name');
     } catch (err) {
         alert('Ошибка при добавлении предмета');
     }
@@ -247,7 +246,7 @@ async function loadProfessorList(page = 0, pageSize = 50) {
             input.onkeydown = async (e) => {
                 if (e.key === 'Enter') {
                     try {
-                        await updateProfessor(p.id || p.name, { name: input.value });
+                        await updateProfessor(p.id, { name: input.value });
                         nameSpan.textContent = input.value;
                         div.replaceChild(nameSpan, input);
                     } catch (err) {
@@ -269,7 +268,7 @@ async function loadProfessorList(page = 0, pageSize = 50) {
         delBtn.onclick = async () => {
             if (confirm('Удалить преподавателя?')) {
                 try {
-                    await deleteProfessor(Number(p.id || p.name)); // Преобразуем к числу
+                    await deleteProfessor(p.id);
                     div.remove();
                 } catch (err) {
                     alert('Ошибка при удалении преподавателя');
@@ -305,7 +304,7 @@ async function loadSubjectList(page = 0, pageSize = 50) {
             input.onkeydown = async (e) => {
                 if (e.key === 'Enter') {
                     try {
-                        await updateSubject(s.id || s.name, { name: input.value });
+                        await updateSubject(s.id, { name: input.value });
                         nameSpan.textContent = input.value;
                         div.replaceChild(nameSpan, input);
                     } catch (err) {
@@ -327,7 +326,7 @@ async function loadSubjectList(page = 0, pageSize = 50) {
         delBtn.onclick = async () => {
             if (confirm('Удалить предмет?')) {
                 try {
-                    await deleteSubject(Number(s.id || s.name)); // Преобразуем к числу
+                    await deleteSubject(s.id);
                     div.remove();
                 } catch (err) {
                     alert('Ошибка при удалении предмета');

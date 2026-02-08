@@ -9,7 +9,7 @@ export function populateSelect(selectId, data, displayProperty = 'name') {
 
     data.forEach(item => {
         const option = document.createElement('option');
-        // Используем name как value, если нет id
+        // Если есть id, используем его, иначе используем name
         option.value = item.id !== undefined ? item.id : item.name;
         option.textContent = item[displayProperty];
         selectElement.appendChild(option);

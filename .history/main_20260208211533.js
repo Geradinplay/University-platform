@@ -269,7 +269,7 @@ async function loadProfessorList(page = 0, pageSize = 50) {
         delBtn.onclick = async () => {
             if (confirm('Удалить преподавателя?')) {
                 try {
-                    await deleteProfessor(Number(p.id || p.name)); // Преобразуем к числу
+                    await deleteProfessor(p.id || p.name);
                     div.remove();
                 } catch (err) {
                     alert('Ошибка при удалении преподавателя');
@@ -327,7 +327,7 @@ async function loadSubjectList(page = 0, pageSize = 50) {
         delBtn.onclick = async () => {
             if (confirm('Удалить предмет?')) {
                 try {
-                    await deleteSubject(Number(s.id || s.name)); // Преобразуем к числу
+                    await deleteSubject(s.id || s.name);
                     div.remove();
                 } catch (err) {
                     alert('Ошибка при удалении предмета');
