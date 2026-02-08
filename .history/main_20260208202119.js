@@ -113,14 +113,11 @@ window.addClassroom = async function() {
         return;
     }
     try {
-        const newClassroom = await createClassroom({ number });
+        await createClassroom({ number });
         document.getElementById('newClassroomNumber').value = '';
         alert('Аудитория добавлена!');
         // Обновить список
         loadClassroomList(0);
-        // Обновить select
-        const classrooms = await getClassrooms();
-        populateSelect('classroomSelect', classrooms, 'number');
     } catch (err) {
         alert('Ошибка при добавлении аудитории');
     }

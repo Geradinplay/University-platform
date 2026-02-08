@@ -516,9 +516,6 @@ td {
   flex: 1 1 0;
   overflow-y: auto;
   height: 100%;
-  background: transparent;
-  padding: 0;
-  margin: 0;
 }
 
 .scroll-list-window {

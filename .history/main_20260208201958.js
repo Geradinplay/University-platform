@@ -106,58 +106,52 @@ window.createBreakManual = async function() {
     }
 };
 
-window.addClassroom = async function() {
+window.addClassroom = function() {
     const number = document.getElementById('newClassroomNumber').value.trim();
     if (!number) {
         alert('Введите номер аудитории!');
         return;
     }
-    try {
-        const newClassroom = await createClassroom({ number });
-        document.getElementById('newClassroomNumber').value = '';
-        alert('Аудитория добавлена!');
-        // Обновить список
-        loadClassroomList(0);
-        // Обновить select
-        const classrooms = await getClassrooms();
-        populateSelect('classroomSelect', classrooms, 'number');
-    } catch (err) {
-        alert('Ошибка при добавлении аудитории');
-    }
+    // Можно добавить API-запрос, сейчас просто добавим в select
+    const classroomSelect = document.getElementById('classroomSelect');
+    const option = document.createElement('option');
+    option.value = number;
+    option.textContent = number;
+    classroomSelect.appendChild(option);
+    document.getElementById('newClassroomNumber').value = '';
+    alert('Аудитория добавлена!');
 };
 
-window.addProfessor = async function() {
+window.addProfessor = function() {
     const name = document.getElementById('newProfessorName').value.trim();
     if (!name) {
         alert('Введите имя преподавателя!');
         return;
     }
-    try {
-        await createProfessor({ name });
-        document.getElementById('newProfessorName').value = '';
-        alert('Преподаватель добавлен!');
-        // Обновить список
-        loadProfessorList(0);
-    } catch (err) {
-        alert('Ошибка при добавлении преподавателя');
-    }
+    // Можно добавить API-запрос, сейчас просто добавим в select
+    const teacherSelect = document.getElementById('teacherSelect');
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    teacherSelect.appendChild(option);
+    document.getElementById('newProfessorName').value = '';
+    alert('Преподаватель добавлен!');
 };
 
-window.addSubject = async function() {
+window.addSubject = function() {
     const name = document.getElementById('newSubjectName').value.trim();
     if (!name) {
         alert('Введите название предмета!');
         return;
     }
-    try {
-        await createSubject({ name });
-        document.getElementById('newSubjectName').value = '';
-        alert('Предмет добавлен!');
-        // Обновить список
-        loadSubjectList(0);
-    } catch (err) {
-        alert('Ошибка при добавлении предмета');
-    }
+    // Можно добавить API-запрос, сейчас просто добавим в select
+    const subjectSelect = document.getElementById('subjectSelect');
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    subjectSelect.appendChild(option);
+    document.getElementById('newSubjectName').value = '';
+    alert('Предмет добавлен!');
 };
 
 // --- Пагинация для списков с кнопками удаления и редактированием ---

@@ -514,30 +514,25 @@ td {
 
 .scroll-list {
   flex: 1 1 0;
-  overflow-y: auto;
-  height: 100%;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-}
-
-.scroll-list-window {
-  flex: 1 1 0;
-  max-width: 420px;
+  max-height: 420px;
   min-width: 260px;
-  height: 420px;
-  display: flex;
-  flex-direction: column;
+  overflow-y: auto;
   background: #f8fcfd;
   border: 1px solid #d3e0ea;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(91,155,213,0.08);
   padding: 18px 16px;
   margin-top: 8px;
-  overflow: hidden;
 }
 
-.scroll-list-window h2 {
+/* --- Добавить ограничение по высоте для мобильных/малых экранов --- */
+@media (max-width: 600px) {
+  .scroll-list {
+    max-height: 220px;
+  }
+}
+
+.scroll-list h2 {
   margin-top: 0;
   margin-bottom: 14px;
   font-size: 1.2em;
@@ -596,15 +591,4 @@ td {
 
 .scroll-list-item .edit-btn:hover {
   background: #4a8ac2;
-}
-
-/* --- Добавить ограничение по высоте для мобильных/малых экранов --- */
-@media (max-width: 600px) {
-  .scroll-list {
-    max-height: 220px;
-  }
-  .scroll-list-window {
-    height: 220px;
-    max-width: 100%;
-  }
 }
