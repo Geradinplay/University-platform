@@ -1,0 +1,9 @@
+{
+  "name": "school-schedule-api-client",
+  "version": "1.0.0",
+  "description": "API client for school schedule management",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

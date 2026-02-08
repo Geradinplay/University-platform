@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Расписание PRO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('constructor')">Конструктор</button>
+        <button class="tab-btn" onclick="openTab('settings')">Настройки перерывов</button>
+    </div>
+
+    <div id="constructor" class="tab-content active">
+        <div class="top-section">
+            <div class="controls">
+                <h2>Создать занятие</h2>
+                <input type="text" id="titleInput" placeholder="Название">
+                <input type="text" id="infoInput" placeholder="Преподаватель, ауд.">
+                <input type="text" id="timeInput" placeholder="Время">
+                <button onclick="addNewLesson()">Создать</button>
+            </div>
+            <div class="buffer-container">
+                <h3>Буфер</h3>
+                <div id="buffer" class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings" class="tab-content">
+        <div class="settings-card">
+            <h2>Автоматические перерывы</h2>
+            <label class="switch">
+                <input type="checkbox" id="breakToggle">
+                <span class="slider"></span>
+            </label>
+            <p>Включить перерывы между занятиями</p>
+            <div class="input-group">
+                <label>Длительность перерыва (мин):</label>
+                <input type="number" id="breakDuration" value="15">
+            </div>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <table>
+            <thead>
+                <tr>
+                    <th>Понедельник</th><th>Вторник</th><th>Среда</th><th>Четверг</th><th>Пятница</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" onclick="deleteElement()">Удалить карточку</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

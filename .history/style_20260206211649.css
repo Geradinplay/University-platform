@@ -1,0 +1,42 @@
+/* ... (предыдущие стили остаются) ... */
+
+.controls {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.controls input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.controls button {
+    padding: 8px 15px;
+    background: #3f6ea5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Эффект при наведении карточки на день */
+.dropzone.drag-over {
+    background-color: #e3f2fd;
+    border: 2px dashed #3f6ea5;
+}
+
+.lesson {
+    cursor: grab; /* Меняем курсор, чтобы было понятно, что можно тащить */
+}
+
+.lesson:active {
+    cursor: grabbing;
+}

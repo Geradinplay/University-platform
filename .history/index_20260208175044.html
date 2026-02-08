@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расписание</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📅 Расписание школы</h1>
+    
+    <div class="form-section">
+      <h2>Создать занятие</h2>
+      <div class="form-group">
+        <label for="subjectSelect">Предмет:</label>
+        <select id="subjectSelect">
+          <option value="">-- Выберите предмет --</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="teacherSelect">Преподаватель:</label>
+        <select id="teacherSelect">
+          <option value="">-- Выберите преподавателя --</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="classroomSelect">Аудитория:</label>
+        <select id="classroomSelect">
+          <option value="">-- Выберите аудиторию --</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
+        <input type="text" id="timeInput" placeholder="09:00-10:30">
+      </div>
+      
+      <button onclick="window.addNewLesson()">Добавить занятие</button>
+    </div>
+
+    <div class="settings-section">
+      <h2>Параметры</h2>
+      <label>
+        <input type="checkbox" id="breakToggle" checked>
+        Автоматические перерывы
+      </label>
+      
+      <label>
+        Длительность перерыва (мин):
+        <input type="number" id="breakDuration" value="10" min="5" max="30">
+      </label>
+      
+      <label>
+        <input type="checkbox" id="allowCollision">
+        Разрешить пересечения во времени
+      </label>
+    </div>
+
+    <div class="table-section">
+      <h2>Расписание</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Буфер</th>
+              <th>Понедельник</th>
+              <th>Вторник</th>
+              <th>Среда</th>
+              <th>Четверг</th>
+              <th>Пятница</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td id="buffer" class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)"></td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="context-menu" class="context-menu">
+    <option onclick="window.deleteItem()">Удалить</option>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

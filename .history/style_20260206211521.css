@@ -1,0 +1,79 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    padding: 30px;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    table-layout: fixed;
+}
+
+th {
+    background: #3f6ea5;
+    color: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+td {
+    border: 1px solid #ccc;
+    vertical-align: top;
+    padding: 10px;
+}
+
+.day {
+    min-height: 120px;
+}
+
+/* Блоки занятий и пустых окон */
+.lesson, .break {
+    padding: 8px;
+    border: 1px solid #aaa;
+    margin-bottom: 14px;
+    background: #fafafa;
+}
+
+/* Окна (пустое время) */
+.break {
+    background: #eeeeee;
+    border-style: dashed;
+    color: #888;
+}
+
+.lesson:last-child, .break:last-child {
+    margin-bottom: 0;
+}
+
+.lesson-title {
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.lesson-info {
+    font-size: 13px;
+    color: #555;
+}
+
+.lesson-time {
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid #bbb;
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+}
+
+.break-text {
+    text-align: center;
+    font-style: italic;
+    font-size: 13px;
+    padding: 5px 0;
+}

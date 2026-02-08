@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Расписание лекций</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="top-section">
+        <div class="controls">
+            <h2>Создать занятие</h2>
+            <input type="text" id="titleInput" placeholder="Название">
+            <input type="text" id="infoInput" placeholder="Преподаватель, ауд.">
+            <input type="text" id="timeInput" placeholder="Время">
+            <button onclick="addNewLesson()">Создать</button>
+        </div>
+
+        <div class="buffer-container">
+            <h3>Буфер</h3>
+            <div id="buffer" class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)">
+                </div>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <table>
+            <thead>
+                <tr>
+                    <th>Понедельник</th>
+                    <th>Вторник</th>
+                    <th>Среда</th>
+                    <th>Четверг</th>
+                    <th>Пятница</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                    <td class="dropzone" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="day"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

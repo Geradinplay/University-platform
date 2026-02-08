@@ -1,0 +1,38 @@
+/* ... (весь предыдущий код CSS остается) ... */
+
+.buffer-container {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 2px solid #3f6ea5;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.buffer-container h3 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #3f6ea5;
+    text-align: center;
+}
+
+#buffer {
+    display: flex;
+    gap: 15px;
+    min-height: 100px;
+    padding: 10px;
+    flex-wrap: wrap;
+    background: #fdfdfd;
+    border-radius: 4px;
+}
+
+#buffer .lesson {
+    width: 200px; /* Фиксированная ширина карточек в буфере */
+    margin-bottom: 0;
+}
+
+/* Изменим высоту ячеек таблицы для удобства */
+td {
+    min-height: 400px;
+    height: auto;
+}

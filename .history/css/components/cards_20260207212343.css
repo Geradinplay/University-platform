@@ -1,0 +1,7 @@
+.card-form { flex: 0 0 300px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.card-buffer { flex: 1; background: white; padding: 15px; border-radius: 10px; border: 1px solid #ccc; }
+.vertical-inputs { display: flex; flex-direction: column; gap: 8px; }
+.vertical-inputs input,
+.vertical-inputs select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.primary-btn { background: #3f6ea5; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+/* .card-settings не имеет уникальных стилей, кроме как в .setting-item */

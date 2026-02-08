@@ -1,0 +1,118 @@
+* { box-sizing: border-box; }
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 20px 10%;
+}
+
+/* Контейнер для формы и буфера в ряд */
+.top-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: stretch; /* Чтобы блоки были одной высоты */
+}
+
+/* Стили формы */
+.controls {
+    flex: 1; /* Занимает половину места */
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.controls h2 { margin: 0 0 10px 0; font-size: 1.2em; }
+
+.controls input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.controls button {
+    padding: 12px;
+    background: #3f6ea5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Стили буфера */
+.buffer-container {
+    flex: 1; /* Занимает вторую половину места */
+    background: #fff;
+    padding: 20px;
+    border: 2px dashed #3f6ea5;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.buffer-container h3 { margin: 0 0 10px 0; font-size: 1.1em; color: #3f6ea5; }
+
+#buffer {
+    flex-grow: 1;
+    min-height: 100px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+
+/* ТАБЛИЦА */
+.table-section {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+th {
+    background: #3f6ea5;
+    color: white;
+    padding: 15px;
+    border: 1px solid #ccc;
+}
+
+td {
+    border: 1px solid #ccc;
+    vertical-align: top;
+    padding: 10px;
+    height: 400px;
+}
+
+.day { height: 100%; }
+
+/* КАРТОЧКА */
+.lesson {
+    background: #fafafa;
+    border: 1px solid #aaa;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 14px;
+}
+
+.lesson-title { font-weight: bold; margin-bottom: 5px; }
+.lesson-time {
+    border-top: 1px solid #eee;
+    margin-top: 5px;
+    padding-top: 5px;
+    text-align: center;
+    font-weight: bold;
+}
