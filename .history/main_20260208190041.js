@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             d.dataset.subjectId = lessonData.subject.id;
             d.dataset.professorId = lessonData.professor.id;
             d.dataset.classroomId = lessonData.classroom.id;
+            // ДОБАВЛЕНО: Добавляем startTime и endTime в dataset для dragDropHandler
             d.dataset.startTime = lessonData.startTime;
             d.dataset.endTime = lessonData.endTime;
 
@@ -108,45 +109,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             targetContainer.insertBefore(d, insertReferenceNode);
 
-            // УДАЛЕНО: Не добавляем break-block при загрузке уроков
-            // if (lessonData.day !== 0 && document.getElementById('breakToggle')?.checked) {
-            //     if (!(d.nextSibling && d.nextSibling.classList.contains('break-block'))) {
-            //         const min = document.getElementById('breakDuration')?.value || 10;
-            //         const b = document.createElement('div');
-            //         b.className = 'break-block';
-            //         b.innerText = `ПЕРЕРЫВ: ${min} МИН.`;
-            //         targetContainer.insertBefore(b, d.nextSibling);
-            //     }
-            // }
+            // Если занятие в дне, добавляем перерыв, если включена опция
+            if (lessonData.day !== 0 && document.getElementById('breakToggle')?.checked) {
+                if (!(d.nextSibling && d.nextSibling.classList.contains('break-block'))) {
+                    const min = document.getElementById('breakDuration')?.value || 10;
+                    const b = document.createElement('div');
+                    b.className = 'break-block';
+                    b.innerText = `ПЕРЕРЫВ: ${min} МИН.`;
+                    targetContainer.insertBefore(b, d.nextSibling);
+                }
+            }
         });
 
         // --- Добавление перерывов из базы ---
         breaks.forEach(breakData => {
-            if (!breakData || !breakData.id || !breakData.day || !breakData.startTime || !breakData.endTime) return;
+            if (!breakData || !breakData.id || !breakData.day || !breakData.positionAfterLessonId) return;
             if (breakData.day < 1 || breakData.day > dayContainers.length) return;
             const dayContainer = dayContainers[breakData.day - 1];
             // Найти занятие, после которого должен идти перерыв
-            let lessonDiv = null;
-            // Ищем занятие, которое заканчивается в breakData.startTime
-            for (const child of dayContainer.children) {
-                if (
-                    child.classList.contains('lesson') &&
-                    child.dataset.endTime === breakData.startTime
-                ) {
-                    lessonDiv = child;
-                    break;
-                }
-            }
+            const lessonDiv = dayContainer.querySelector(`#lesson-${breakData.positionAfterLessonId}`);
             if (lessonDiv) {
                 const b = document.createElement('div');
                 b.className = 'break-block';
                 b.id = "break-" + breakData.id;
-                b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+                b.innerText = `ПЕРЕРЫВ: ${breakData.duration} МИН.`;
                 b.dataset.breakId = breakData.id;
                 b.dataset.day = breakData.day;
                 b.dataset.startTime = breakData.startTime;
                 b.dataset.endTime = breakData.endTime;
-                b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                b.dataset.duration = breakData.duration;
                 dayContainer.insertBefore(b, lessonDiv.nextSibling);
             }
         });
