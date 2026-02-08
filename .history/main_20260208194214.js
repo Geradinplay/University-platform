@@ -197,8 +197,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         // --- Добавление перерывов из базы ---
         breaks.forEach(breakData => {
             if (!breakData || !breakData.id || !breakData.day || !breakData.startTime || !breakData.endTime) return;
-            if (breakData.day === 0) {
-                // Добавляем break-block в буфер
+            if (breakData.day < 1 || breakData.day > dayContainers.length) return;
+            const dayContainer = dayContainers[breakData.day - 1];
+            // Найти занятие, после которого должен идти перерыв
+            let lessonDiv = null;
+            // Ищем занятие, которое заканчивается в breakData.startTime
+            for (const child of dayContainer.children) {
+                if (
+                    child.classList.contains('lesson') &&
+                    child.dataset.endTime === breakData.startTime
+                ) {
+                    lessonDiv = child;
+                    break;
+                }
+            }
+            if (lessonDiv) {
                 const b = document.createElement('div');
                 b.className = 'break-block';
                 b.id = "break-" + breakData.id;
@@ -208,39 +221,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 b.dataset.startTime = breakData.startTime;
                 b.dataset.endTime = breakData.endTime;
                 b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                // --- Добавлено: break-block теперь draggable ---
                 b.draggable = true;
                 b.ondragstart = window.drag;
                 b.ondragover = window.allowDrop;
                 b.ondrop = window.drop;
-                bufferContent.appendChild(b);
-            } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
-                // ...existing code for adding break-block to day...
-                let lessonDiv = null;
-                for (const child of dayContainers[breakData.day - 1].children) {
-                    if (
-                        child.classList.contains('lesson') &&
-                        child.dataset.endTime === breakData.startTime
-                    ) {
-                        lessonDiv = child;
-                        break;
-                    }
-                }
-                if (lessonDiv) {
-                    const b = document.createElement('div');
-                    b.className = 'break-block';
-                    b.id = "break-" + breakData.id;
-                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                    b.dataset.breakId = breakData.id;
-                    b.dataset.day = breakData.day;
-                    b.dataset.startTime = breakData.startTime;
-                    b.dataset.endTime = breakData.endTime;
-                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                    b.draggable = true;
-                    b.ondragstart = window.drag;
-                    b.ondragover = window.allowDrop;
-                    b.ondrop = window.drop;
-                    dayContainers[breakData.day - 1].insertBefore(b, lessonDiv.nextSibling);
-                }
+                dayContainer.insertBefore(b, lessonDiv.nextSibling);
             }
         });
 
