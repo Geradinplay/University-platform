@@ -11,64 +11,61 @@
     <!-- Вкладки для формы, буфера и настроек -->
     <div class="tabs">
       <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
+      <button class="tab-btn" onclick="window.openTab('buffer-content')">Буфер</button>
       <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
     </div>
 
-    <!-- Содержимое вкладки "Создать занятие" -->
-    <div id="lesson-tab-content" class="tab-content active">
-      <div class="form-flex-row">
-        <!-- Блок создания занятия -->
-        <div class="lesson-form-block">
-          <h2>Создать занятие</h2>
-          <div class="form-group">
-            <label for="subjectSelect">Предмет:</label>
-            <select id="subjectSelect">
-              <option value="">-- Выберите предмет --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="teacherSelect">Преподаватель:</label>
-            <select id="teacherSelect">
-              <option value="">-- Выберите преподавателя --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="classroomSelect">Аудитория:</label>
-            <select id="classroomSelect">
-              <option value="">-- Выберите аудиторию --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
-            <input type="text" id="timeInput" placeholder="09:00-10:30">
-          </div>
-          <button onclick="window.addNewLesson()">Добавить занятие</button>
+    <!-- Новый flex-контейнер для формы создания занятий и перерывов -->
+    <div class="form-flex-row">
+      <!-- Блок создания занятия -->
+      <div id="lesson-tab-content" class="tab-content active lesson-form-block">
+        <h2>Создать занятие</h2>
+        <div class="form-group">
+          <label for="subjectSelect">Предмет:</label>
+          <select id="subjectSelect">
+            <option value="">-- Выберите предмет --</option>
+          </select>
         </div>
-        <!-- Блок создания перерыва -->
-        <div class="break-form-block">
-          <h2>Создать перерыв</h2>
-          <div class="form-group">
-            <label for="breakDaySelect">День:</label>
-            <select id="breakDaySelect">
-              <option value="1">Понедельник</option>
-              <option value="2">Вторник</option>
-              <option value="3">Среда</option>
-              <option value="4">Четверг</option>
-              <option value="5">Пятница</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="breakStartInput">Начало перерыва (ЧЧ:ММ):</label>
-            <input type="text" id="breakStartInput" placeholder="10:30">
-          </div>
-          <div class="form-group">
-            <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
-            <input type="text" id="breakEndInput" placeholder="10:45">
-          </div>
-          <!-- Добавлен flex-растягивающий контейнер -->
-          <div style="flex-grow:1;"></div>
-          <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
+        <div class="form-group">
+          <label for="teacherSelect">Преподаватель:</label>
+          <select id="teacherSelect">
+            <option value="">-- Выберите преподавателя --</option>
+          </select>
         </div>
+        <div class="form-group">
+          <label for="classroomSelect">Аудитория:</label>
+          <select id="classroomSelect">
+            <option value="">-- Выберите аудиторию --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
+          <input type="text" id="timeInput" placeholder="09:00-10:30">
+        </div>
+        <button onclick="window.addNewLesson()">Добавить занятие</button>
+      </div>
+      <!-- Блок создания перерыва -->
+      <div id="break-create-block" class="break-form-block">
+        <h2>Создать перерыв</h2>
+        <div class="form-group">
+          <label for="breakDaySelect">День:</label>
+          <select id="breakDaySelect">
+            <option value="1">Понедельник</option>
+            <option value="2">Вторник</option>
+            <option value="3">Среда</option>
+            <option value="4">Четверг</option>
+            <option value="5">Пятница</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="breakStartInput">Начало перерыва (ЧЧ:ММ):</label>
+          <input type="text" id="breakStartInput" placeholder="10:30">
+        </div>
+        <div class="form-group">
+          <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
+          <input type="text" id="breakEndInput" placeholder="10:45">
+        </div>
+        <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
       </div>
     </div>
 

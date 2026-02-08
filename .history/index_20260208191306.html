@@ -11,6 +11,7 @@
     <!-- Вкладки для формы, буфера и настроек -->
     <div class="tabs">
       <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
+      <button class="tab-btn" onclick="window.openTab('buffer-content')">Буфер</button>
       <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
     </div>
 
@@ -65,8 +66,6 @@
             <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
             <input type="text" id="breakEndInput" placeholder="10:45">
           </div>
-          <!-- Добавлен flex-растягивающий контейнер -->
-          <div style="flex-grow:1;"></div>
           <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
         </div>
       </div>

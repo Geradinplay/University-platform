@@ -11,6 +11,7 @@
     <!-- Вкладки для формы, буфера и настроек -->
     <div class="tabs">
       <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
+      <button class="tab-btn" onclick="window.openTab('buffer-content')">Буфер</button>
       <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
     </div>
 
@@ -73,7 +74,7 @@
     </div>
 
     <!-- Содержимое вкладки "Буфер" -->
-    <div id="buffer-content" class="tab-content dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+    <div id="buffer-content" class="tab-content tab-buffer dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
       <h2>Буфер</h2> <!-- Заголовок буфера скрывается через CSS -->
       <!-- Карточки из буфера будут добавляться сюда JS-ом -->
     </div>

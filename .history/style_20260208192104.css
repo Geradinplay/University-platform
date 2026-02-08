@@ -139,14 +139,12 @@ h2 {
   padding: 25px; /* Уменьшим padding, так как общий padding у tab-content */
   border: 2px solid #5b9bd5; /* Сделаем рамку */
   border-radius: 12px; /* Скругленные углы */
-  min-height: 120px; /* Минимальная высота */
+  min-height: 260px; /* Минимальная высота */
   margin-bottom: 24px; /* Отступ от основного контейнера */
   box-shadow: 0 4px 15px rgba(91, 155, 213, 0.08); /* Мягкая тень */
   display: flex;
-  flex-direction: row; /* Элементы располагаются горизонтально */
-  align-items: flex-start; /* Не растягиваются по вертикали */
-  gap: 16px; /* Отступ между карточками */
-  overflow-x: auto; /* Горизонтальная прокрутка при большом количестве */
+  flex-direction: column;
+  align-items: stretch;
 }
 
 #buffer-content h2 { /* Скрываем заголовок "Буфер" внутри вкладки, так как вкладка уже названа */

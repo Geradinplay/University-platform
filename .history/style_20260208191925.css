@@ -136,17 +136,11 @@ h2 {
 /* Содержимое вкладки "Буфер" */
 #buffer-content { /* Контейнер для карточек буфера */
   background-color: #f8fcfd; /* Очень светлый голубой фон для буфера */
-  padding: 25px; /* Уменьшим padding, так как общий padding у tab-content */
-  border: 2px solid #5b9bd5; /* Сделаем рамку */
-  border-radius: 12px; /* Скругленные углы */
-  min-height: 120px; /* Минимальная высота */
-  margin-bottom: 24px; /* Отступ от основного контейнера */
-  box-shadow: 0 4px 15px rgba(91, 155, 213, 0.08); /* Мягкая тень */
-  display: flex;
-  flex-direction: row; /* Элементы располагаются горизонтально */
-  align-items: flex-start; /* Не растягиваются по вертикали */
-  gap: 16px; /* Отступ между карточками */
-  overflow-x: auto; /* Горизонтальная прокрутка при большом количестве */
+  padding: 10px; /* Уменьшим padding, так как общий padding у tab-content */
+  border: none; /* Убираем рамку, она есть у tab-content */
+  border-radius: 0;
+  flex-grow: 1; /* Займет все доступное пространство внутри вкладки */
+  overflow-y: auto; /* Прокрутка, если много элементов */
 }
 
 #buffer-content h2 { /* Скрываем заголовок "Буфер" внутри вкладки, так как вкладка уже названа */
@@ -249,6 +243,7 @@ td {
 }
 
 .dropzone:hover {
+    padding: 25px;
   background-color: #eef4f8; /* Мягкое свечение при наведении на dropzone */
 }
 

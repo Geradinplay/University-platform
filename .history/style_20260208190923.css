@@ -16,7 +16,7 @@ body {
   display: flex; /* Используем flexbox для основного контейнера */
   flex-direction: column; /* Элементы располагаются по вертикали */
   gap: 25px; /* Отступы между основными блоками */
-  background-color: #ffffff; /* ВЕРНУТЬ белый фон */
+  background-color: #ffffff; /* Основной белый фон контейнера */
   padding: 30px;
   border-radius: 12px; /* Скругленные углы */
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); /* Мягкая тень */
@@ -66,15 +66,15 @@ h2 {
 
 .tab-content {
   display: none; /* По умолчанию все вкладки скрыты */
-  padding: 0px;
+  padding: 25px;
+  border: 1px solid #d3e0ea;
   border-radius: 8px;
-
-  background-color: transparent; /* Сделать фон прозрачным */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  min-height: 350px; /* Минимальная высота для содержимого вкладок */
   flex-direction: column; /* Элементы внутри вкладки располагаются по вертикали */
 }
-.tab-buffer {
-  padding: 25px;
-}
+
 .tab-content.active {
   display: flex; /* Активная вкладка отображается как flex-контейнер */
 }
@@ -136,17 +136,11 @@ h2 {
 /* Содержимое вкладки "Буфер" */
 #buffer-content { /* Контейнер для карточек буфера */
   background-color: #f8fcfd; /* Очень светлый голубой фон для буфера */
-  padding: 25px; /* Уменьшим padding, так как общий padding у tab-content */
-  border: 2px solid #5b9bd5; /* Сделаем рамку */
-  border-radius: 12px; /* Скругленные углы */
-  min-height: 120px; /* Минимальная высота */
-  margin-bottom: 24px; /* Отступ от основного контейнера */
-  box-shadow: 0 4px 15px rgba(91, 155, 213, 0.08); /* Мягкая тень */
-  display: flex;
-  flex-direction: row; /* Элементы располагаются горизонтально */
-  align-items: flex-start; /* Не растягиваются по вертикали */
-  gap: 16px; /* Отступ между карточками */
-  overflow-x: auto; /* Горизонтальная прокрутка при большом количестве */
+  padding: 10px; /* Уменьшим padding, так как общий padding у tab-content */
+  border: none; /* Убираем рамку, она есть у tab-content */
+  border-radius: 0;
+  flex-grow: 1; /* Займет все доступное пространство внутри вкладки */
+  overflow-y: auto; /* Прокрутка, если много элементов */
 }
 
 #buffer-content h2 { /* Скрываем заголовок "Буфер" внутри вкладки, так как вкладка уже названа */
@@ -427,17 +421,13 @@ td {
   display: flex;
   gap: 32px;
   margin-bottom: 20px;
-  width: 100%;
-  padding-left: 40px;
-  padding-right: 40px;
-  align-items: stretch;
 }
 
 .lesson-form-block,
 .break-form-block {
   flex: 1 1 0;
-  min-width: 380px;
-  max-width: 600px;
+  min-width: 320px;
+  max-width: 420px;
   background: #fff;
   border: 1px solid #d3e0ea;
   border-radius: 8px;
@@ -446,11 +436,6 @@ td {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-}
-
-.form-flex-row > .lesson-form-block,
-.form-flex-row > .break-form-block {
-  flex-grow: 1;
 }
 
 .lesson-form-block h2,
@@ -462,29 +447,4 @@ td {
   font-size: 1.6em;
   font-weight: 600;
   color: #334e68;
-}
-
-.break-form-block {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.break-form-block .break-create-btn {
-  margin-top: auto;
-  background-color: #5b9bd5;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: background-color 0.3s, transform 0.2s;
-  margin-top: auto;
-}
-
-.break-form-block .break-create-btn:hover {
-  background-color: #4a8ac2;
-  transform: translateY(-1px);
 }

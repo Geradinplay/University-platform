@@ -70,12 +70,11 @@
           <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
         </div>
       </div>
-    </div>
-
-    <!-- Содержимое вкладки "Буфер" -->
-    <div id="buffer-content" class="tab-content dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-      <h2>Буфер</h2> <!-- Заголовок буфера скрывается через CSS -->
-      <!-- Карточки из буфера будут добавляться сюда JS-ом -->
+      <!-- Блок буфера теперь внутри страницы создания занятия -->
+      <div id="buffer-content" class="dropzone">
+        <h2>Буфер</h2>
+        <!-- Карточки из буфера будут добавляться сюда JS-ом -->
+      </div>
     </div>
 
     <!-- Содержимое вкладки "Настройки" -->
