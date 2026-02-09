@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расписание</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Кнопка выхода -->
+    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+      <button id="logout-btn" style="background:#dc3545;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;">
+        Выйти
+      </button>
+    </div>
+    <!-- Вкладки для формы, буфера и настроек -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
+      <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
+      <button class="tab-btn" onclick="window.openTab('add-classroom-tab')">Добавить аудиторию</button>
+      <button class="tab-btn" onclick="window.openTab('add-professor-tab')">Добавить преподавателя</button>
+      <button class="tab-btn" onclick="window.openTab('add-subject-tab')">Добавить предмет</button>
+    </div>
+
+    <!-- Содержимое вкладки "Создать занятие" -->
+    <div id="lesson-tab-content" class="tab-content active">
+      <div class="form-flex-row">
+        <!-- Блок создания занятия -->
+        <div class="lesson-form-block">
+          <h2>Создать занятие</h2>
+          <div class="form-group">
+            <label for="subjectSelect">Предмет:</label>
+            <select id="subjectSelect">
+              <option value="">-- Выберите предмет --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="teacherSelect">Преподаватель:</label>
+            <select id="teacherSelect">
+              <option value="">-- Выберите преподавателя --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="classroomSelect">Аудитория:</label>
+            <select id="classroomSelect">
+              <option value="">-- Выберите аудиторию --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
+            <input type="text" id="timeInput" placeholder="09:00-10:30">
+          </div>
+          <button onclick="window.addNewLesson()">Добавить занятие</button>
+        </div>
+        <!-- Блок создания перерыва -->
+        <div class="break-form-block">
+          <h2>Создать перерыв</h2>
+          <div class="form-group">
+            <label for="breakDaySelect">День:</label>
+            <select id="breakDaySelect">
+              <option value="1">Понедельник</option>
+              <option value="2">Вторник</option>
+              <option value="3">Среда</option>
+              <option value="4">Четверг</option>
+              <option value="5">Пятница</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="breakStartInput">Начало перерыва (ЧЧ:ММ):</label>
+            <input type="text" id="breakStartInput" placeholder="10:30">
+          </div>
+          <div class="form-group">
+            <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
+            <input type="text" id="breakEndInput" placeholder="10:45">
+          </div>
+          <!-- Добавлен flex-растягивающий контейнер -->
+          <div style="flex-grow:1;"></div>
+          <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
+        </div>
+      </div>
+      <!-- Буфер теперь только внутри lesson-tab-content -->
+      <div id="buffer-content" class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+        <h2>Буфер</h2>
+        <!-- Карточки из буфера будут добавляться сюда JS-ом -->
+      </div>
+    </div>
+
+    <!-- Содержимое вкладки "Настройки" -->
+    <div id="settings-content" class="tab-content">
+      <h2>Параметры</h2>
+      <div class="settings-group">
+        <label>
+          <input type="checkbox" id="breakToggle" checked>
+          Автоматические перерывы
+        </label>
+        
+        <label>
+          Длительность перерыва (мин):
+          <input type="number" id="breakDuration" value="10" min="5" max="30">
+        </label>
+      </div>
+      
+      <div class="settings-group">
+        <label>
+          <input type="checkbox" id="allowCollision">
+          Разрешить пересечения во времени
+        </label>
+      </div>
+    </div>
+
+    <!-- Вкладка добавления аудитории -->
+    <div id="add-classroom-tab" class="tab-content">
+      <div style="display: flex; gap: 32px;">
+        <!-- Форма добавления -->
+        <div style="flex: 0 0 320px;">
+          <h2>Добавить аудиторию</h2>
+          <div class="form-group">
+            <label for="newClassroomNumber">Номер аудитории:</label>
+            <input type="text" id="newClassroomNumber" placeholder="101">
+          </div>
+          <button onclick="window.addClassroom()">Добавить аудиторию</button>
+        </div>
+        <!-- Список существующих (фиксированное окно) -->
+        <div class="scroll-list-window">
+          <h2 style="font-size:1.2em;">Список аудиторий</h2>
+          <div id="classroom-list" class="scroll-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка добавления преподавателя -->
+    <div id="add-professor-tab" class="tab-content">
+      <div style="display: flex; gap: 32px;">
+        <!-- Форма добавления -->
+        <div style="flex: 0 0 320px;">
+          <h2>Добавить преподавателя</h2>
+          <div class="form-group">
+            <label for="newProfessorName">Имя преподавателя:</label>
+            <input type="text" id="newProfessorName" placeholder="Иван Иванов">
+          </div>
+          <button onclick="window.addProfessor()">Добавить преподавателя</button>
+        </div>
+        <!-- Список существующих (фиксированное окно) -->
+        <div class="scroll-list-window">
+          <h2 style="font-size:1.2em;">Список преподавателей</h2>
+          <div id="professor-list" class="scroll-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка добавления предмета -->
+    <div id="add-subject-tab" class="tab-content">
+      <div style="display: flex; gap: 32px;">
+        <!-- Форма добавления -->
+        <div style="flex: 0 0 320px;">
+          <h2>Добавить предмет</h2>
+          <div class="form-group">
+            <label for="newSubjectName">Название предмета:</label>
+            <input type="text" id="newSubjectName" placeholder="Математика">
+          </div>
+          <button onclick="window.addSubject()">Добавить предмет</button>
+        </div>
+        <!-- Список существующих (фиксированное окно) -->
+        <div class="scroll-list-window">
+          <h2 style="font-size:1.2em;">Список предметов</h2>
+          <div id="subject-list" class="scroll-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <h2>Расписание</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Понедельник</th>
+              <th>Вторник</th>
+              <th>Среда</th>
+              <th>Четверг</th>
+              <th>Пятница</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <!-- Ячейки для дней недели, с контейнером .day внутри -->
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day" data-day-index="1"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day" data-day-index="2"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day" data-day-index="3"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day" data-day-index="4"></div>
+              </td>
+              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+                <div class="day" data-day-index="5"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="context-menu" class="context-menu">
+    <button class="delete" onclick="window.deleteItem()">Удалить</button>
+  </div>
+
+  <!-- Модальное окно для сообщений -->
+  <div id="app-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3 id="app-modal-title"></h3>
+      <p id="app-modal-message"></p>
+      <button id="app-modal-close" class="app-modal-close-btn">OK</button>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+  <script src="connection-modal.js"></script>
+  <!-- Проверка наличия токена авторизации -->
+  <script>
+    if (!localStorage.getItem('jwt')) {
+      window.location.href = 'auth.html';
+    }
+    // Кнопка выхода
+    document.getElementById('logout-btn').onclick = function() {
+      localStorage.removeItem('jwt');
+      window.location.href = 'auth.html';
+    };
+  </script>
+</body>
+</html>
