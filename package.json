@@ -1,10 +1,13 @@
 {
-  "name": "school-schedule-api-client",
+  "name": "school-schedule-client",
   "version": "1.0.0",
-  "description": "API client for school schedule management",
-  "main": "index.js",
+  "description": "Frontend для системы управления расписанием",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "dev": "npx http-server public -p 3000 -c-1 --proxy http://localhost:8080",
+    "start": "npx http-server public -p 3000"
   },
-  "license": "UNLICENSED"
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }
