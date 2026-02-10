@@ -226,6 +226,8 @@ window.addFaculty = async function() {
 window.addSchedule = async function() {
     const name = document.getElementById('createScheduleName').value.trim();
     const facultyId = parseInt(document.getElementById('createScheduleFacultyId').value);
+    let semester = parseInt(document.getElementById('createScheduleSemester').value);
+
     if (!name) {
         alert('Введите название расписания!');
         return;
@@ -234,11 +236,17 @@ window.addSchedule = async function() {
         alert('Выберите факультет!');
         return;
     }
+
+    // Если семестр не указан, используем default значение 1
+    if (isNaN(semester)) {
+        semester = 1;
+    }
+
     try {
         // Сохраняем текущий факультет ПЕРЕД загрузкой
         const currentFacultyId = document.getElementById('facultySelect').value;
 
-        await createSchedule({ name, facultyId });
+        await createSchedule({ name, facultyId, semester });
         alert('Расписание добавлено!');
         await loadSchedules(); // Перезагрузить список расписаний
 
@@ -251,6 +259,7 @@ window.addSchedule = async function() {
         // Очищаем поля ПОСЛЕ загрузки
         document.getElementById('createScheduleName').value = '';
         document.getElementById('createScheduleFacultyId').value = '';
+        document.getElementById('createScheduleSemester').value = '';
         closeCreateScheduleModal(); // Закрыть модальное окно после создания
     } catch (err) {
         alert('Ошибка при добавлении расписания');
@@ -412,7 +421,7 @@ window.editSchedule = async function() {
     const scheduleId = document.getElementById('scheduleSelect').value;
     const name = document.getElementById('editScheduleName').value.trim();
     const facultyId = parseInt(document.getElementById('editScheduleFacultyId').value);
-    const semester = parseInt(document.getElementById('editScheduleSemester').value);
+    let semester = parseInt(document.getElementById('editScheduleSemester').value);
 
     if (!scheduleId) {
         alert('Выберите расписание!');
@@ -426,9 +435,10 @@ window.editSchedule = async function() {
         alert('Выберите факультет!');
         return;
     }
+
+    // Если семестр не указан, используем default значение 1
     if (isNaN(semester)) {
-        alert('Введите номер семестра!');
-        return;
+        semester = 1;
     }
 
     try {
@@ -567,7 +577,9 @@ async function loadSchedulesByFaculty() {
         filteredSchedules.forEach(schedule => {
             const option = document.createElement('option');
             option.value = schedule.id;
-            option.textContent = schedule.name;
+            // Добавляем семестр в отображение с проверкой на null
+            const semesterText = schedule.semester ? `(Семестр ${schedule.semester})` : '(Семестр не указан)';
+            option.textContent = `${schedule.name} ${semesterText}`;
             scheduleSelect.appendChild(option);
         });
 
