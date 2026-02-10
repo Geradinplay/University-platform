@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мое расписание</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../src/css/layout.css">
+  <style>
+    /* Кружок с инициалом профессора */
+    .professor-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: bold;
+      color: #764ba2;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .professor-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .professor-info h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      letter-spacing: 0.5px;
+    }
+
+    .professor-info .email {
+      font-size: 16px;
+      opacity: 0.95;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    .professor-info .subtitle {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    /* Ваши стили для легенды и карточек */
+    .lesson.my-lesson { background: linear-gradient(90deg, #ffebee 0%, #ffcdd2 100%) !important; border-left: 5px solid #dc3545 !important; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="professor-header" style="display: flex; justify-content: space-between; align-items: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);">
+    <div style="display: flex; align-items: center; gap: 25px; flex: 1;">
+      <div class="professor-avatar" id="prof-avatar">П</div>
+      <div class="professor-info">
+        <h2 id="prof-display-name">Загрузка...</h2>
+        <div class="email" id="prof-email"></div>
+        <div class="subtitle">Личный кабинет преподавателя</div>
+      </div>
+    </div>
+    <button id="logout-btn" class="logout-btn" style="padding: 10px 20px; font-size: 15px; border: none; background: rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 600;">Выйти</button>
+  </div>
+
+  <div class="legend" style="display: flex; gap: 15px; margin-bottom: 20px; padding: 10px; background: #f9f9f9; border-radius: 5px;">
+    <div><span style="display:inline-block; width:15px; height:15px; background:#ffcdd2; border:1px solid #dc3545;"></span> Мои пары</div>
+    <div><span style="display:inline-block; width:15px; height:15px; background:#e3f2fd; border:1px solid #2196f3;"></span> Другие</div>
+  </div>
+
+  <div id="schedule-grid">
+  </div>
+</div>
+
+<script type="module" src="../src/js/main.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('jwt');
+
+    if (!token) {
+      window.location.href = 'auth.html';
+      return;
+    }
+
+    try {
+      // Получаем данные текущего пользователя
+      const resp = await fetch('http://localhost:8080/api/auth/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (resp.ok) {
+        const userData = await resp.json();
+
+        // Проверяем роль - если ADMIN, перенаправляем на главную
+        if (userData.role === 'ADMIN') {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        // Сохраняем данные в localStorage для быстрого доступа
+        localStorage.setItem('userId', userData.id);
+        localStorage.setItem('name', userData.name);
+        localStorage.setItem('username', userData.username);
+        localStorage.setItem('userEmail', userData.email);
+        localStorage.setItem('userRole', userData.role);
+
+        // Выводим информацию о профессоре
+        const displayNameEl = document.getElementById('prof-display-name');
+        const emailEl = document.getElementById('prof-email');
+        const avatarEl = document.getElementById('prof-avatar');
+
+        const name = userData.name || 'Преподаватель';
+        const email = userData.email || '';
+
+        displayNameEl.textContent = name;
+        emailEl.textContent = email;
+
+        // Генерируем инициал (первая буква имени в верхнем регистре)
+        const initial = name.charAt(0).toUpperCase();
+        avatarEl.textContent = initial;
+
+      } else if (resp.status === 401) {
+        // Токен невалидный, перенаправляем на вход
+        localStorage.clear();
+        window.location.href = 'auth.html';
+      } else {
+        console.error('Error loading user data:', resp.status);
+        document.getElementById('prof-display-name').textContent = 'Ошибка загрузки данных';
+      }
+    } catch (e) {
+      console.error('Error fetching user data:', e);
+      document.getElementById('prof-display-name').textContent = 'Ошибка соединения';
+    }
+  });
+
+  document.getElementById('logout-btn').onclick = () => {
+    localStorage.clear();
+    window.location.href = 'auth.html';
+  };
+</script>
+</body>
+</html>
