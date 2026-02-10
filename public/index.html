@@ -135,6 +135,22 @@
           Разрешить пересечения во времени
         </label>
       </div>
+
+      <div class="settings-group">
+        <label>
+          <input type="checkbox" id="checkClassroomBusy" checked>
+          Проверять занятость кабинетов
+        </label>
+        <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать один кабинет в одно и то же время</p>
+      </div>
+
+      <div class="settings-group">
+        <label>
+          <input type="checkbox" id="checkProfessorBusy" checked>
+          Проверять занятость профессоров
+        </label>
+        <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать одного профессора в одно и то же время</p>
+      </div>
     </div>
 
     <!-- Вкладка добавления аудитории -->
@@ -272,6 +288,10 @@
           <option value="">-- Выберите факультет --</option>
         </select>
       </div>
+      <div class="form-group">
+        <label for="createScheduleSemester">Семестр:</label>
+        <input type="number" id="createScheduleSemester" placeholder="1" min="1" max="8">
+      </div>
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
         <button id="create-schedule-submit" class="app-modal-close-btn">Создать</button>
         <button id="create-schedule-cancel" class="app-modal-close-btn">Отмена</button>
@@ -292,6 +312,10 @@
         <select id="editScheduleFacultyId">
           <option value="">-- Выберите факультет --</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="editScheduleSemester">Семестр:</label>
+        <input type="number" id="editScheduleSemester" placeholder="1" min="1" max="8">
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
         <button id="edit-schedule-submit" class="app-modal-close-btn">Сохранить</button>

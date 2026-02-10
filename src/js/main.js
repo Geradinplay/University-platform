@@ -283,7 +283,7 @@ function closeCreateScheduleModal() {
 }
 
 // Функции для управления модальным окном обновления расписания
-window.openEditScheduleModal = function() {
+window.openEditScheduleModal = async function() {
     const scheduleId = document.getElementById('scheduleSelect').value;
     const scheduleSelect = document.getElementById('scheduleSelect');
 
@@ -295,24 +295,36 @@ window.openEditScheduleModal = function() {
     // Получаем текущее имя расписания из select
     const scheduleName = scheduleSelect.options[scheduleSelect.selectedIndex].text;
 
-    // Заполняем форму
-    document.getElementById('editScheduleName').value = scheduleName;
+    // Загружаем полную информацию о расписании (включая семестр)
+    try {
+        const schedule = await getScheduleById(scheduleId);
 
-    // Заполняем список факультетов
-    const facultySelect = document.getElementById('facultySelect');
-    const editFacultySelect = document.getElementById('editScheduleFacultyId');
-    editFacultySelect.innerHTML = '<option value="">-- Выберите факультет --</option>';
+        // Заполняем форму
+        document.getElementById('editScheduleName').value = schedule.name || scheduleName;
+        document.getElementById('editScheduleSemester').value = schedule.semester || '';
 
-    Array.from(facultySelect.options).forEach(option => {
-        if (option.value) {
-            const newOption = document.createElement('option');
-            newOption.value = option.value;
-            newOption.textContent = option.textContent;
-            editFacultySelect.appendChild(newOption);
-        }
-    });
+        // Заполняем список факультетов
+        const facultySelect = document.getElementById('facultySelect');
+        const editFacultySelect = document.getElementById('editScheduleFacultyId');
+        editFacultySelect.innerHTML = '<option value="">-- Выберите факультет --</option>';
 
-    document.getElementById('edit-schedule-modal').classList.add('active');
+        Array.from(facultySelect.options).forEach(option => {
+            if (option.value) {
+                const newOption = document.createElement('option');
+                newOption.value = option.value;
+                newOption.textContent = option.textContent;
+                editFacultySelect.appendChild(newOption);
+            }
+        });
+
+        // Устанавливаем выбранный факультет
+        editFacultySelect.value = schedule.facultyId || '';
+
+        document.getElementById('edit-schedule-modal').classList.add('active');
+    } catch (err) {
+        alert('Ошибка при загрузке информации о расписании');
+        console.error(err);
+    }
 };
 
 function closeEditScheduleModal() {
@@ -400,6 +412,7 @@ window.editSchedule = async function() {
     const scheduleId = document.getElementById('scheduleSelect').value;
     const name = document.getElementById('editScheduleName').value.trim();
     const facultyId = parseInt(document.getElementById('editScheduleFacultyId').value);
+    const semester = parseInt(document.getElementById('editScheduleSemester').value);
 
     if (!scheduleId) {
         alert('Выберите расписание!');
@@ -413,9 +426,13 @@ window.editSchedule = async function() {
         alert('Выберите факультет!');
         return;
     }
+    if (isNaN(semester)) {
+        alert('Введите номер семестра!');
+        return;
+    }
 
     try {
-        await updateSchedule(scheduleId, { name, facultyId });
+        await updateSchedule(scheduleId, { name, facultyId, semester });
         alert('Расписание обновлено!');
         await loadSchedules();
         closeEditScheduleModal();

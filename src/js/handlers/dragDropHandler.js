@@ -101,9 +101,57 @@ export async function drop(ev) {
             const timeStr = el.querySelector('.lesson-time').innerText;
             const allowCollision = document.getElementById('settings-content')?.querySelector('#allowCollision')?.checked || false;
 
+            // Проверка стандартных коллизий времени
             if (!allowCollision && checkCollision(timeStr, targetContainer, el.id)) {
-                alert("Ошибка! В это время уже есть другое занятие.");
+                alert("Ошибка! В это время уже есть другое заняти��.");
                 return;
+            }
+
+            // ДОБАВЛЕНО: Проверка занятости кабинетов и профессоров
+            const checkClassroomBusy = document.getElementById('checkClassroomBusy')?.checked;
+            const checkProfessorBusy = document.getElementById('checkProfessorBusy')?.checked;
+
+            if (checkClassroomBusy || checkProfessorBusy) {
+                const [startTimeStr, endTimeStr] = timeStr.split('-');
+                const startMin = parseTimeToMinutes(startTimeStr.trim());
+                const endMin = parseTimeToMinutes(endTimeStr.trim());
+
+                const lessonClassroomId = el.dataset.classroomId;
+                const lessonProfessorId = el.dataset.professorId;
+
+                // Получаем все занятия в целевом контейнере
+                const dayLessons = targetContainer.querySelectorAll('.lesson');
+                let hasConflict = false;
+
+                dayLessons.forEach(otherLesson => {
+                    if (otherLesson === el || hasConflict) return; // Пропускаем самого себя и если уже найден конфликт
+
+                    const otherTimeStr = otherLesson.querySelector('.lesson-time').innerText;
+                    const [otherStartStr, otherEndStr] = otherTimeStr.split('-');
+                    const otherStartMin = parseTimeToMinutes(otherStartStr.trim());
+                    const otherEndMin = parseTimeToMinutes(otherEndStr.trim());
+
+                    // Проверяем пересечение времени
+                    const hasTimeConflict = !(endMin <= otherStartMin || startMin >= otherEndMin);
+
+                    if (hasTimeConflict) {
+                        if (checkClassroomBusy && lessonClassroomId == otherLesson.dataset.classroomId) {
+                            const classroomNumber = otherLesson.textContent.match(/\d+/)?.[0] || 'неизвестного';
+                            alert(`❌ Кабинет ${classroomNumber} уже занят в это время (${otherTimeStr})`);
+                            hasConflict = true;
+                            return;
+                        }
+
+                        if (checkProfessorBusy && lessonProfessorId == otherLesson.dataset.professorId) {
+                            const professorName = otherLesson.textContent.split(',')[0] || 'неизвестного преподавателя';
+                            alert(`❌ Преподаватель ${professorName} уже занят в это время (${otherTimeStr})`);
+                            hasConflict = true;
+                            return;
+                        }
+                    }
+                });
+
+                if (hasConflict) return;
             }
         }
 

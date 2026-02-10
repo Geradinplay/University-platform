@@ -50,6 +50,40 @@ export async function addNewLesson() {
         return;
     }
 
+    // ДОБАВЛЕНО: Проверка коллизий на занятость кабинетов и профессоров
+    const checkClassroomBusy = document.getElementById('checkClassroomBusy')?.checked;
+    const checkProfessorBusy = document.getElementById('checkProfessorBusy')?.checked;
+
+    if (checkClassroomBusy || checkProfessorBusy) {
+        // Получаем все уже добавленные занятия в таблице
+        const allLessons = document.querySelectorAll('.day .lesson, #buffer-content .lesson');
+
+        allLessons.forEach(lesson => {
+            const lessonStartTime = lesson.dataset.startTime;
+            const lessonEndTime = lesson.dataset.endTime;
+            const lessonClassroomId = lesson.dataset.classroomId;
+            const lessonProfessorId = lesson.dataset.professorId;
+
+            const lessonStartMin = parseTimeToMinutes(lessonStartTime);
+            const lessonEndMin = parseTimeToMinutes(lessonEndTime);
+
+            // Проверяем пересечение времени
+            const hasTimeConflict = !(endMinutes <= lessonStartMin || startMinutes >= lessonEndMin);
+
+            if (hasTimeConflict) {
+                if (checkClassroomBusy && lessonClassroomId == classroomId) {
+                    alert(`❌ Кабинет ${selectedClassroomNumber} уже занят в это время (${lessonStartTime}-${lessonEndTime})`);
+                    return;
+                }
+
+                if (checkProfessorBusy && lessonProfessorId == professorId) {
+                    alert(`❌ Преподаватель ${selectedTeacherName} уже занят в это время (${lessonStartTime}-${lessonEndTime})`);
+                    return;
+                }
+            }
+        });
+    }
+
     const lessonData = {
         startTime: formattedStartTime,
         endTime: formattedEndTime,
