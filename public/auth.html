@@ -43,6 +43,7 @@
     <form class="auth-form" id="register-form">
       <h2>Регистрация</h2>
       <input type="text" id="register-username" placeholder="Имя пользователя" required>
+      <input type="text" id="register-name" placeholder="Полное имя" required>
       <input type="email" id="register-email" placeholder="Email" required>
       <input type="password" id="register-password" placeholder="Пароль" required>
       <button type="submit" id="register-btn">Зарегистрироваться</button>
@@ -138,7 +139,28 @@
           const data = await resp.json();
           localStorage.setItem('jwt', data.token);
           localStorage.setItem('username', username);
-          localStorage.setItem('name', data.name || username);
+
+          // После входа получаем полные данные пользователя через /api/auth/me
+          try {
+            const meResp = await fetch('http://localhost:8080/api/auth/me', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${data.token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (meResp.ok) {
+              const userData = await meResp.json();
+              localStorage.setItem('name', userData.name);
+              localStorage.setItem('userId', userData.id);
+              localStorage.setItem('userEmail', userData.email);
+              localStorage.setItem('userRole', userData.role);
+            }
+          } catch (e) {
+            console.warn('Could not fetch user data after login:', e);
+          }
+
           // Перенаправляем на основе роли пользователя
           redirectBasedOnRole(data.token);
         } else {
@@ -167,44 +189,94 @@
     document.getElementById('register-form').onsubmit = async (e) => {
       e.preventDefault();
       const username = document.getElementById('register-username').value;
+      const name = document.getElementById('register-name').value;
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
       const errorDiv = document.getElementById('register-error');
       errorDiv.textContent = '';
 
+      const requestBody = {username, name, email, password};
+      console.log('📤 Отправляю на /api/auth/register:', requestBody);
+
       try {
         const resp = await fetch('http://localhost:8080/api/auth/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username, email, password})
+          body: JSON.stringify(requestBody)
         });
 
+        console.log('📥 Статус ответа:', resp.status);
+        console.log('📥 Headers ответа:', resp.headers);
+
         if (resp.ok) {
-          const data = await resp.json();
-          localStorage.setItem('jwt', data.token);
-          localStorage.setItem('username', username);
-          localStorage.setItem('name', data.name || username);
-          // Перенаправляем на основе роли пользователя
-          redirectBasedOnRole(data.token);
-        } else {
-          let errData = {};
-          const contentType = resp.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            try {
-              errData = await resp.json();
-            } catch (parseErr) {
-              errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
-              console.error('Register error:', parseErr);
-              return;
+          const userData = await resp.json();
+          console.log('✅ Register успешна. Данные:', userData);
+
+          // Контроллер возвращает UserDTO с полными данными
+          localStorage.setItem('username', userData.username);
+          localStorage.setItem('name', userData.name);
+          localStorage.setItem('userId', userData.id);
+          localStorage.setItem('userEmail', userData.email);
+          localStorage.setItem('userRole', userData.role);
+
+          // Автоматический вход после регистрации
+          try {
+            console.log('🔐 Пытаюсь автоматически войти...');
+            const loginResp = await fetch('http://localhost:8080/api/auth/login', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({username, password})
+            });
+
+            if (loginResp.ok) {
+              const loginData = await loginResp.json();
+              console.log('✅ Автовход успешен. Токен:', loginData.token);
+              localStorage.setItem('jwt', loginData.token);
+
+              // Перенаправляем на основе роли пользователя
+              redirectBasedOnRole(loginData.token);
+            } else {
+              console.error('❌ Автовход ошибка. Статус:', loginResp.status);
+              const errText = await loginResp.text();
+              console.error('Ответ сервера:', errText);
+              errorDiv.textContent = 'Регистрация успешна, но не удалось войти. Пожалуйста, войдите вручную.';
+              setTimeout(() => {
+                window.location.href = 'auth.html';
+              }, 2000);
             }
-            errorDiv.textContent = errData.message || `Ошибка регистрации (status: ${resp.status})`;
-          } else {
-            errorDiv.textContent = `Ошибка регистрации (status: ${resp.status})`;
+          } catch (e) {
+            console.error('❌ Auto-login fetch ошибка:', e);
+            errorDiv.textContent = 'Регистрация успешна. Пожалуйста, войдите.';
+            setTimeout(() => {
+              window.location.href = 'auth.html';
+            }, 2000);
           }
+        } else {
+          // Ошибка при регистрации
+          const contentType = resp.headers.get('content-type') || '';
+          let errMessage = `Ошибка регистрации (status: ${resp.status})`;
+
+          try {
+            if (contentType.includes('application/json')) {
+              const errData = await resp.json();
+              console.error('❌ Server JSON error:', errData);
+              errMessage = errData.message || errData.error || errMessage;
+            } else {
+              const errText = await resp.text();
+              console.error('❌ Server text error:', errText);
+              if (errText) {
+                errMessage = errText;
+              }
+            }
+          } catch (parseErr) {
+            console.error('❌ Error parsing response:', parseErr);
+          }
+
+          errorDiv.textContent = errMessage;
         }
       } catch (e) {
-        errorDiv.textContent = 'Ошибка соединения с сервером';
-        console.error('Register fetch error:', e);
+        console.error('❌ Fetch ошибка:', e);
+        errorDiv.textContent = 'Ошибка соединения с сервером: ' + e.message;
       }
     };
   </script>
