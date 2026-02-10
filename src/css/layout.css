@@ -1,2 +1,90 @@
 .top-row { display: flex; gap: 20px; margin-bottom: 20px; }
 .table-container { /* Оставим пустым, если нет общих стилей для контейнера таблицы, кроме тех, что применяются к самой таблице */ }
+
+.schedule-select-block {
+    background: linear-gradient(135deg, #f5f7fa 0%, #f8fafc 100%);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    border: 1px solid #e0e7ff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-select-block h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4em;
+    color: #1f2937;
+    font-weight: 600;
+    border-bottom: 2px solid #5b9bd5;
+    padding-bottom: 12px;
+}
+
+.schedule-select-block .form-group {
+    margin-bottom: 15px;
+    flex: 1;
+}
+
+.schedule-select-block .form-group label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.schedule-select-block select,
+.schedule-select-block input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 15px;
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+.schedule-select-block select:hover,
+.schedule-select-block input:hover {
+    border-color: #5b9bd5;
+    box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.1);
+}
+
+.schedule-select-block select:focus,
+.schedule-select-block input:focus {
+    outline: none;
+    border-color: #5b9bd5;
+    box-shadow: 0 0 0 4px rgba(91, 155, 213, 0.15);
+}
+
+.schedule-select-block button {
+    background-color: #5b9bd5;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.schedule-select-block button:hover {
+    background-color: #4a8ac2;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(91, 155, 213, 0.3);
+}
+
+.schedule-select-block button:active {
+    transform: translateY(0);
+}
+
+.schedule-select-block button[style*="background:#dc3545"] {
+    background-color: #dc3545 !important;
+}
+
+.schedule-select-block button[style*="background:#dc3545"]:hover {
+    background-color: #c82333 !important;
+}
+

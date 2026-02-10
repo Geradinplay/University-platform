@@ -137,7 +137,7 @@ h2 {
 #buffer-content { /* Контейнер для карточек буфера */
   background-color: #f8fcfd; /* Очень светлый голубой фон для буфера */
   padding: 25px; /* Уменьшим padding, так как общий padding у tab-content */
-  border: 2px solid #5b9bd5; /* Сделаем рамку */
+  border: 2px dashed #5b9bd5; /* Пунктирная рамка */
   border-radius: 12px; /* Скругленные углы */
   min-height: 120px; /* Минимальная высота */
   margin-bottom: 24px; /* Отступ от основного контейнера */
@@ -147,6 +147,22 @@ h2 {
   align-items: flex-start; /* Не растягиваются по вертикали */
   gap: 16px; /* Отступ между карточками */
   overflow-x: auto; /* Горизонтальная прокрутка при большом количестве */
+  position: relative; /* Позиционирование для ::before */
+}
+
+#buffer-content::before {
+  content: 'Buffer';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3.5em;
+  font-weight: 300;
+  color: rgba(91, 155, 213, 0.12);
+  pointer-events: none;
+  letter-spacing: 2px;
+  z-index: 0;
+  white-space: nowrap;
 }
 
 #buffer-content h2 { /* Скрываем заголовок "Буфер" внутри вкладки, так как вкладка уже названа */

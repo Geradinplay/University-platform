@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Расписание</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../src/css/layout.css">
 </head>
 <body>
   <div class="container">
@@ -36,6 +37,8 @@
             </select>
           </div>
           <button onclick="window.openCreateFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Создать новый факультет</button>
+          <button onclick="window.openEditFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Обновить</button>
+          <button onclick="window.openDeleteFacultyModal()" style="white-space: nowrap; margin-top: 20px; background:#dc3545;">Удалить</button>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
           <div class="form-group" style="flex-grow: 1;">
@@ -45,6 +48,8 @@
             </select>
           </div>
           <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 20px;">Создать новое расписание</button>
+          <button onclick="window.openEditScheduleModal()" style="white-space: nowrap; margin-top: 20px;">Обновить</button>
+          <button onclick="window.openDeleteScheduleModal()" style="white-space: nowrap; margin-top: 20px; background:#dc3545;">Удалить</button>
         </div>
         <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
       </div>
@@ -270,6 +275,72 @@
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
         <button id="create-schedule-submit" class="app-modal-close-btn">Создать</button>
         <button id="create-schedule-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для обновления расписания -->
+  <div id="edit-schedule-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3>Обновить расписание</h3>
+      <div class="form-group">
+        <label for="editScheduleName">Название расписания:</label>
+        <input type="text" id="editScheduleName" placeholder="Расписание 1 группы">
+      </div>
+      <div class="form-group">
+        <label for="editScheduleFacultyId">Факультет:</label>
+        <select id="editScheduleFacultyId">
+          <option value="">-- Выберите факультет --</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="edit-schedule-submit" class="app-modal-close-btn">Сохранить</button>
+        <button id="edit-schedule-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для удаления расписания -->
+  <div id="delete-schedule-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3>Удалить расписание</h3>
+      <p>Вы уверены, что хотите удалить расписание? Это действие нельзя отменить.</p>
+      <p id="delete-schedule-name" style="font-weight: bold; color: #dc3545;"></p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="delete-schedule-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
+        <button id="delete-schedule-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для обновления факультета -->
+  <div id="edit-faculty-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3>Обновить факультет</h3>
+      <div class="form-group">
+        <label for="editFacultyName">Название факультета:</label>
+        <input type="text" id="editFacultyName" placeholder="Факультет Информатики">
+      </div>
+      <div class="form-group">
+        <label for="editFacultyShortName">Краткое название:</label>
+        <input type="text" id="editFacultyShortName" placeholder="ФИ" maxlength="10">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="edit-faculty-submit" class="app-modal-close-btn">Сохранить</button>
+        <button id="edit-faculty-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для удаления факультета -->
+  <div id="delete-faculty-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3>Удалить факультет</h3>
+      <p>Вы уверены, что хотите удалить факультет? Это действие нельзя отменить.</p>
+      <p id="delete-faculty-name" style="font-weight: bold; color: #dc3545;"></p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="delete-faculty-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
+        <button id="delete-faculty-cancel" class="app-modal-close-btn">Отмена</button>
       </div>
     </div>
   </div>

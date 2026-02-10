@@ -270,6 +270,65 @@ function closeCreateScheduleModal() {
     document.getElementById('createScheduleFacultyId').value = '';
 }
 
+// Функции для управления модальным окном обновления расписания
+window.openEditScheduleModal = function() {
+    const scheduleId = document.getElementById('scheduleSelect').value;
+    const scheduleSelect = document.getElementById('scheduleSelect');
+
+    if (!scheduleId) {
+        alert('Пожалуйста, выберите расписание для обновления.');
+        return;
+    }
+
+    // Получаем текущее имя расписания из select
+    const scheduleName = scheduleSelect.options[scheduleSelect.selectedIndex].text;
+
+    // Заполняем форму
+    document.getElementById('editScheduleName').value = scheduleName;
+
+    // Заполняем список факультетов
+    const facultySelect = document.getElementById('facultySelect');
+    const editFacultySelect = document.getElementById('editScheduleFacultyId');
+    editFacultySelect.innerHTML = '<option value="">-- Выберите факультет --</option>';
+
+    Array.from(facultySelect.options).forEach(option => {
+        if (option.value) {
+            const newOption = document.createElement('option');
+            newOption.value = option.value;
+            newOption.textContent = option.textContent;
+            editFacultySelect.appendChild(newOption);
+        }
+    });
+
+    document.getElementById('edit-schedule-modal').classList.add('active');
+};
+
+function closeEditScheduleModal() {
+    document.getElementById('edit-schedule-modal').classList.remove('active');
+    document.getElementById('editScheduleName').value = '';
+    document.getElementById('editScheduleFacultyId').value = '';
+}
+
+// Функции для управления модальным окном удаления расписания
+window.openDeleteScheduleModal = function() {
+    const scheduleId = document.getElementById('scheduleSelect').value;
+    const scheduleSelect = document.getElementById('scheduleSelect');
+
+    if (!scheduleId) {
+        alert('Пожалуйста, выберите расписание для удаления.');
+        return;
+    }
+
+    const scheduleName = scheduleSelect.options[scheduleSelect.selectedIndex].text;
+    document.getElementById('delete-schedule-name').textContent = `"${scheduleName}"`;
+
+    document.getElementById('delete-schedule-modal').classList.add('active');
+};
+
+function closeDeleteScheduleModal() {
+    document.getElementById('delete-schedule-modal').classList.remove('active');
+}
+
 // Функции для управления модальным окном создания факультета
 window.openCreateFacultyModal = function() {
     document.getElementById('create-faculty-modal').classList.add('active');
@@ -280,6 +339,155 @@ function closeCreateFacultyModal() {
     document.getElementById('createFacultyName').value = '';
     document.getElementById('createFacultyShortName').value = '';
 }
+
+// Функции для управления модальным окном обновления факультета
+window.openEditFacultyModal = function() {
+    const facultyId = document.getElementById('facultySelect').value;
+    const facultySelect = document.getElementById('facultySelect');
+
+    if (!facultyId) {
+        alert('Пожалуйста, выберите факультет для обновления.');
+        return;
+    }
+
+    // Получаем текущее имя факультета из select
+    const facultyName = facultySelect.options[facultySelect.selectedIndex].text;
+
+    document.getElementById('editFacultyName').value = facultyName;
+    document.getElementById('edit-faculty-modal').classList.add('active');
+};
+
+function closeEditFacultyModal() {
+    document.getElementById('edit-faculty-modal').classList.remove('active');
+    document.getElementById('editFacultyName').value = '';
+    document.getElementById('editFacultyShortName').value = '';
+}
+
+// Функции для управления модальным окном удаления факультета
+window.openDeleteFacultyModal = function() {
+    const facultyId = document.getElementById('facultySelect').value;
+    const facultySelect = document.getElementById('facultySelect');
+
+    if (!facultyId) {
+        alert('Пожалуйста, выберите факультет для удаления.');
+        return;
+    }
+
+    const facultyName = facultySelect.options[facultySelect.selectedIndex].text;
+    document.getElementById('delete-faculty-name').textContent = `"${facultyName}"`;
+
+    document.getElementById('delete-faculty-modal').classList.add('active');
+};
+
+function closeDeleteFacultyModal() {
+    document.getElementById('delete-faculty-modal').classList.remove('active');
+}
+
+// Функция для редактирования расписания
+window.editSchedule = async function() {
+    const scheduleId = document.getElementById('scheduleSelect').value;
+    const name = document.getElementById('editScheduleName').value.trim();
+    const facultyId = parseInt(document.getElementById('editScheduleFacultyId').value);
+
+    if (!scheduleId) {
+        alert('Выберите расписание!');
+        return;
+    }
+    if (!name) {
+        alert('Введите название расписания!');
+        return;
+    }
+    if (isNaN(facultyId)) {
+        alert('Выберите факультет!');
+        return;
+    }
+
+    try {
+        await updateSchedule(scheduleId, { name, facultyId });
+        alert('Расписание обновлено!');
+        await loadSchedules();
+        closeEditScheduleModal();
+    } catch (err) {
+        alert('Ошибка при обновлении расписания');
+    }
+};
+
+// Функция для удаления расписания
+window.deleteSchedule = async function() {
+    const scheduleId = document.getElementById('scheduleSelect').value;
+
+    if (!scheduleId) {
+        alert('Выберите расписание!');
+        return;
+    }
+
+    try {
+        await deleteSchedule(scheduleId);
+        alert('Расписание удалено!');
+        // Очищаем select расписания
+        document.getElementById('scheduleSelect').value = '';
+        document.getElementById('scheduleSelect').innerHTML = '<option value="">-- Выберите расписание --</option>';
+        await loadSchedules();
+        closeDeleteScheduleModal();
+        // Очищаем доску
+        document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+        document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+            dayContainer.innerHTML = '';
+        });
+    } catch (err) {
+        alert('Ошибка при удалении расписания');
+    }
+};
+
+// Функция для редактирования факультета
+window.editFaculty = async function() {
+    const facultyId = document.getElementById('facultySelect').value;
+    const name = document.getElementById('editFacultyName').value.trim();
+    const shortName = document.getElementById('editFacultyShortName').value.trim();
+
+    if (!facultyId) {
+        alert('Выберите факультет!');
+        return;
+    }
+    if (!name) {
+        alert('Введите название факультета!');
+        return;
+    }
+    if (!shortName) {
+        alert('Введите краткое название факультета!');
+        return;
+    }
+
+    try {
+        await updateFaculty(facultyId, { name, shortName });
+        alert('Факультет обновлен!');
+        await loadFaculties();
+        closeEditFacultyModal();
+    } catch (err) {
+        alert('Ошибка при обновлении факультета');
+    }
+};
+
+// Функция для удаления факультета
+window.deleteFaculty = async function() {
+    const facultyId = document.getElementById('facultySelect').value;
+
+    if (!facultyId) {
+        alert('Выберите факультет!');
+        return;
+    }
+
+    try {
+        await deleteFaculty(facultyId);
+        alert('Факультет удален!');
+        await loadFaculties();
+        closeDeleteFacultyModal();
+        // Очищаем выбор расписания
+        document.getElementById('scheduleSelect').innerHTML = '<option value="">-- Выберите расписание --</option>';
+    } catch (err) {
+        alert('Ошибка при удалении факультета');
+    }
+};
 
 async function loadFaculties() {
     try {
@@ -866,11 +1074,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         document.getElementById('create-schedule-cancel').onclick = closeCreateScheduleModal;
 
+        // Обработчики для модального окна редактирования расписания
+        document.getElementById('edit-schedule-submit').onclick = async () => {
+            await window.editSchedule();
+        };
+        document.getElementById('edit-schedule-cancel').onclick = closeEditScheduleModal;
+
+        // Обработчики для модального окна удаления расписания
+        document.getElementById('delete-schedule-confirm').onclick = async () => {
+            await window.deleteSchedule();
+        };
+        document.getElementById('delete-schedule-cancel').onclick = closeDeleteScheduleModal;
+
         // Обработчики для модального окна создания факультета
         document.getElementById('create-faculty-submit').onclick = async () => {
             await window.addFaculty();
         };
         document.getElementById('create-faculty-cancel').onclick = closeCreateFacultyModal;
+
+        // Обработчики для модального окна редактирования факультета
+        document.getElementById('edit-faculty-submit').onclick = async () => {
+            await window.editFaculty();
+        };
+        document.getElementById('edit-faculty-cancel').onclick = closeEditFacultyModal;
+
+        // Обработчики для модального окна удаления факультета
+        document.getElementById('delete-faculty-confirm').onclick = async () => {
+            await window.deleteFaculty();
+        };
+        document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
 
     } catch (error) {
         console.error("Ошибка при загрузке приложения:", error);
