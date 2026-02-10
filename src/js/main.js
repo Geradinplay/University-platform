@@ -211,10 +211,11 @@ window.addFaculty = async function() {
     }
     try {
         await createFaculty({ name, shortName });
-        document.getElementById('createFacultyName').value = '';
-        document.getElementById('createFacultyShortName').value = '';
         alert('Факультет добавлен!');
         await loadFaculties(); // Перезагрузить список факультетов
+        // Очищаем поля ПОСЛЕ загрузки
+        document.getElementById('createFacultyName').value = '';
+        document.getElementById('createFacultyShortName').value = '';
         closeCreateFacultyModal(); // Закрыть модальное окно после создания
     } catch (err) {
         alert('Ошибка при добавлении факультета');
@@ -234,11 +235,22 @@ window.addSchedule = async function() {
         return;
     }
     try {
+        // Сохраняем текущий факультет ПЕРЕД загрузкой
+        const currentFacultyId = document.getElementById('facultySelect').value;
+
         await createSchedule({ name, facultyId });
+        alert('Расписание добавлено!');
+        await loadSchedules(); // Перезагрузить список расписаний
+
+        // Восстанавливаем выбранный факультет
+        if (currentFacultyId) {
+            document.getElementById('facultySelect').value = currentFacultyId;
+            await loadSchedulesByFaculty(); // Перезагружаем расписания для этого факультета
+        }
+
+        // Очищаем поля ПОСЛЕ загрузки
         document.getElementById('createScheduleName').value = '';
         document.getElementById('createScheduleFacultyId').value = '';
-        alert('Расписание добавлено!');
-        await loadSchedules(); // Перезагрузить список факультетов и расписаний
         closeCreateScheduleModal(); // Закрыть модальное окно после создания
     } catch (err) {
         alert('Ошибка при добавлении расписания');
@@ -522,6 +534,12 @@ async function loadSchedulesByFaculty() {
 
         if (!facultyId) {
             scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
+            scheduleSelect.value = '';
+            // Очищаем доску и буфер при сбросе факультета
+            document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+            document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+                dayContainer.innerHTML = '';
+            });
             return;
         }
 
@@ -536,6 +554,14 @@ async function loadSchedulesByFaculty() {
             scheduleSelect.appendChild(option);
         });
 
+        // Очищаем выбранное значение
+        scheduleSelect.value = '';
+        // Очищаем доску и буфер при смене факультета
+        document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+        document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+            dayContainer.innerHTML = '';
+        });
+
         // Добавляем обработчик для автоматической загрузки при выборе расписания
         scheduleSelect.onchange = () => {
             if (scheduleSelect.value) {
@@ -548,7 +574,13 @@ async function loadSchedulesByFaculty() {
 }
 
 async function loadSchedules() {
+    // Сохраняем текущий выбранный факультет
+    const selectedFacultyId = document.getElementById('facultySelect').value;
     await loadFaculties();
+    // Восстанавливаем выбранный факультет после загрузки
+    if (selectedFacultyId) {
+        document.getElementById('facultySelect').value = selectedFacultyId;
+    }
 }
 
 async function loadScheduleList(page = 0, pageSize = 50) {
@@ -616,7 +648,6 @@ window.loadSchedule = async function() {
     const facultyId = document.getElementById('facultySelect').value;
 
     if (!scheduleId) {
-        alert('Пожалуйста, выберите расписание для загрузки.');
         return;
     }
 
