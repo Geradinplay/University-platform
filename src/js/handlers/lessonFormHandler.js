@@ -89,13 +89,16 @@ export async function addNewLesson() {
         endTime: formattedEndTime,
         day: 0, // Для буфера
         subjectId: Number(subjectId),    // Преобразуем к числу
-        professorId: Number(professorId),
+        userId: Number(professorId),     // Переименовано с professorId на userId
         classroomId: Number(classroomId),
         scheduleId: Number(localStorage.getItem('currentScheduleId') || 1) // Добавляем scheduleId
     };
 
     try {
         const newLessonFromServer = await createLesson(lessonData);
+
+        // Используем user вместо professor, так как API возвращает user
+        const professor = newLessonFromServer.professor || newLessonFromServer.user;
 
         const id = "lesson-" + newLessonFromServer.id;
         const d = document.createElement('div');
@@ -105,7 +108,7 @@ export async function addNewLesson() {
         d.ondrop = window.drop; 
         d.dataset.day = newLessonFromServer.day;
         d.dataset.subjectId = newLessonFromServer.subject.id;
-        d.dataset.professorId = newLessonFromServer.professor.id;
+        d.dataset.professorId = professor.id;
         d.dataset.classroomId = newLessonFromServer.classroom.id;
         // ДОБАВЛЕНО: Добавляем startTime и endTime в dataset для dragDropHandler
         d.dataset.startTime = newLessonFromServer.startTime;
@@ -114,7 +117,7 @@ export async function addNewLesson() {
 
         d.innerHTML = `
             <div class="lesson-title">${newLessonFromServer.subject.name}</div>
-            <div>${newLessonFromServer.professor.name}, ${newLessonFromServer.classroom.number}</div>
+            <div>${professor.name}, ${newLessonFromServer.classroom.number}</div>
             <div class="lesson-time">${newLessonFromServer.startTime}-${newLessonFromServer.endTime}</div>
         `;
         // ИЗМЕНЕНО: Добавляем карточку в контейнер для буфера

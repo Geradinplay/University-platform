@@ -150,9 +150,22 @@ async function handleSubmit(e) {
             console.log('✅ Успешный вход:', result);
             showError(''); // Очищаем ошибку
 
-            // Перенаправляем на главную страницу после успешного входа
+            // Проверяем роль пользователя и перенаправляем на правильную страницу
+            const userRole = localStorage.getItem('userRole');
+
+            console.log('👤 Роль пользователя из localStorage:', userRole);
+
             setTimeout(() => {
-                window.location.href = '/';
+                // Если админ - идет на админ панель
+                if (userRole === 'admin' || userRole === 'ADMIN') {
+                    console.log('🔐 Перенаправляю админа на /index.html');
+                    window.location.href = '/index.html';
+                }
+                // Все остальные (студенты, преподаватели, неопределенная роль) - на professor.html
+                else {
+                    console.log('👥 Перенаправляю пользователя на /professor.html (роль: ' + userRole + ')');
+                    window.location.href = '/professor.html';
+                }
             }, 500);
         } else {
             const result = await register(username, email, password);

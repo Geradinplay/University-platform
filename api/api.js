@@ -16,8 +16,12 @@ const getHeaders = () => {
         'Accept': 'application/json',
     };
     const token = localStorage.getItem('jwt');
+    console.log('🔑 JWT Token в getHeaders():', token ? '✅ Есть' : '❌ Нет');
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('📤 Authorization header добавлен');
+    } else {
+        console.warn('⚠️ JWT токен не найден в localStorage! Нужно сначала войти в систему.');
     }
     return headers;
 };
@@ -43,6 +47,20 @@ export async function apiRequest(endpoint, options = {}) {
         }
     };
 
+    // ДОБАВЛЕНО: Логирование для /api/users запросов
+    if (endpoint.includes('/api/users')) {
+        console.log('📤 Запрос к', endpoint);
+        console.log('📋 Headers:', config.headers);
+        const authHeader = config.headers['Authorization'];
+        console.log('🔐 Authorization header:', authHeader ? '✅ Присутствует' : '❌ Отсутствует');
+        if (authHeader) {
+            console.log('🔑 Токен длина:', authHeader.split(' ')[1]?.length || 0, 'символов');
+        }
+        if (config.body) {
+            console.log('📦 Body:', config.body);
+        }
+    }
+
     try {
         const response = await fetch(url, config);
 
@@ -59,7 +77,19 @@ export async function apiRequest(endpoint, options = {}) {
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
+            // ДОБАВЛЕНО: Логирование полной ошибки
+            if (endpoint.includes('/api/users')) {
+                console.error('❌ Ошибка при запросе к', endpoint);
+                console.error('📊 Статус:', response.status);
+                console.error('📦 Ответ сервера:', data);
+            }
             throw new Error(data.message || `Ошибка HTTP: ${response.status}`);
+        }
+
+        // ДОБАВЛЕНО: Логирование успешного ответа для /api/users
+        if (endpoint.includes('/api/users')) {
+            console.log('✅ Успешный ответ от', endpoint);
+            console.log('📦 Данные ответа:', data);
         }
 
         return data;
@@ -107,11 +137,111 @@ export function logout() {
 }
 
 // --- ПРЕПОДАВАТЕЛИ (Professors) ---
+// МИГРАЦИЯ: Таблица professors удалена, преподаватели это Users с isProfessor=true
 
-export const getProfessors = () => apiRequest('/api/professors');
-export const createProfessor = (data) => apiRequest('/api/professors', { method: 'POST', body: JSON.stringify(data) });
-export const updateProfessor = (id, data) => apiRequest(`/api/professors/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const deleteProfessor = (id) => apiRequest(`/api/professors/${id}`, { method: 'DELETE' });
+// Получить всех пользователей (для администратора)
+// Получает ВСЕ пользователей со сервера, кроме текущего
+export const getUsers = async () => {
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) {
+            console.warn('⚠️ Нет JWT токена! Нужно сначала войти в систему.');
+            return [];
+        }
+
+        console.log('📥 Получаю список всех пользователей с /api/users...');
+        const allUsers = await apiRequest('/api/users');
+        console.log('✅ Получено пользователей с сервера:', allUsers?.length || 0);
+
+        // Получаем ID текущего пользователя
+        const currentUserId = localStorage.getItem('userId');
+        console.log('🔍 Текущий пользователь ID:', currentUserId);
+
+        // Фильтруем, чтобы исключить текущего пользователя
+        const filteredUsers = Array.isArray(allUsers)
+            ? allUsers.filter(u => u.id !== currentUserId)
+            : [];
+
+        console.log('👥 Пользователей после фильтрации (без текущего):', filteredUsers.length);
+        return filteredUsers;
+    } catch (err) {
+        // Если /api/users недоступен, используем данные из localStorage
+        console.warn('⚠️ /api/users недоступен (' + err.message + '). Используем пустой список.');
+        return [];
+    }
+};
+
+// Получить всех преподавателей (это Users с isProfessor=true)
+// ВАЖНО: Получаем текущего пользователя и проверяем isProfessor
+export const getProfessors = async () => {
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) {
+            console.warn('⚠️ Нет JWT токена! Нужно сначала войти в систему.');
+            return [];
+        }
+
+        console.log('📥 Получаю список всех пользователей для фильтрации профессоров...');
+
+        // Получаем ВСЕ пользователей
+        const allUsers = await getUsers();
+        console.log('✅ Получено пользователей:', allUsers?.length || 0);
+
+        // Фильтруем только профессоров (isProfessor=true)
+        const professors = Array.isArray(allUsers)
+            ? allUsers.filter(u => u.isProfessor === true)
+            : [];
+
+        console.log('👨‍🏫 Профессоров после фильтрации:', professors.length);
+        professors.forEach(p => {
+            console.log('  - ' + p.username + ' (' + p.name + ')');
+        });
+        return professors;
+    } catch (err) {
+        console.error('❌ Ошибка при получении профессоров:', err.message);
+        console.warn('⚠️ Используем данные из localStorage как fallback...');
+
+        // Fallback: если текущий пользователь профессор, возвращаем его
+        const isProfessorValue = localStorage.getItem('isProfessor');
+        const isProfessor = isProfessorValue === 'true' || isProfessorValue === true;
+
+        const professors = [];
+        if (isProfessor) {
+            const currentUser = {
+                id: localStorage.getItem('userId'),
+                username: localStorage.getItem('username'),
+                name: localStorage.getItem('name'),
+                email: localStorage.getItem('userEmail'),
+                role: localStorage.getItem('userRole'),
+                isProfessor: true
+            };
+            console.log('👨‍🏫 Fallback: текущий пользователь профессор');
+            if (currentUser.id) {
+                professors.push(currentUser);
+            }
+        }
+
+        return professors;
+    }
+};
+
+// Создание преподавателя теперь через /api/auth/register с isProfessor=true
+// Не используется напрямую, используется через auth регистрацию
+export const createProfessor = (data) => apiRequest('/api/users', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, isProfessor: true })
+});
+
+// Обновить преподавателя (обновляем User с id)
+export const updateProfessor = (id, data) => apiRequest(`/api/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+
+// Удалить преподавателя (удаляем User)
+export const deleteProfessor = (id) => apiRequest(`/api/users/${id}`, {
+    method: 'DELETE'
+});
 
 // --- ПРЕДМЕТЫ (Subjects) ---
 

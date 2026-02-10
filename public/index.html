@@ -6,6 +6,26 @@
   <title>Расписание</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../src/css/layout.css">
+
+  <script>
+    // Проверяем JWT токен и роль пользователя при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('jwt');
+      const userRole = localStorage.getItem('userRole');
+
+      console.log('🔐 index.html: Проверяю доступ. Token:', !!token, 'Role:', userRole);
+
+      if (!token) {
+        console.warn('⚠️ JWT токен не найден! Перенаправляю на страницу входа...');
+        window.location.href = 'auth.html';
+      } else if (userRole !== 'admin' && userRole !== 'ADMIN') {
+        console.warn('⚠️ Пользователь не является админом (role=' + userRole + ')! Перенаправляю на профессорскую панель...');
+        window.location.href = 'professor.html';
+      } else {
+        console.log('✅ JWT токен найден и роль админа подтверждена. Загружаю админ панель...');
+      }
+    });
+  </script>
 </head>
 <body>
   <div class="container">
@@ -177,19 +197,11 @@
     <!-- Вкладка добавления преподавателя -->
     <div id="add-professor-tab" class="tab-content">
       <div style="display: flex; gap: 32px;">
-        <!-- Форма добавления -->
-        <div style="flex: 0 0 320px;">
-          <h2>Добавить преподавателя</h2>
-          <div class="form-group">
-            <label for="newProfessorName">Имя преподавателя:</label>
-            <input type="text" id="newProfessorName" placeholder="Иван Иванов">
-          </div>
-          <button onclick="window.addProfessor()">Добавить преподавателя</button>
-        </div>
-        <!-- Список существующих (фиксированное окно) -->
-        <div class="scroll-list-window">
-          <h2 style="font-size:1.2em;">Список преподавателей</h2>
-          <div id="professor-list" class="scroll-list"></div>
+
+        <!-- Список всех пользователей с переключателем isProfessor -->
+        <div class="scroll-list-window" style="flex: 1;">
+          <h2 style="font-size:1.2em;">Все пользователи</h2>
+          <div id="users-list" class="scroll-list"></div>
         </div>
       </div>
     </div>

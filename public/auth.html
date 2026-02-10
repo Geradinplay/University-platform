@@ -56,7 +56,7 @@
   </div>
 
   <script>
-    // Функция для перенаправления на основе роли пользователя
+    // Функция для перенаправления на основе флага isProfessor пользователя
     async function redirectBasedOnRole(token) {
       try {
         const resp = await fetch('http://localhost:8080/api/auth/me', {
@@ -69,19 +69,22 @@
 
         if (resp.ok) {
           const userData = await resp.json();
-          // Перенаправляем в зависимости от роли
-          if (userData.role === 'ADMIN') {
-            window.location.href = 'index.html';
-          } else if (userData.role === 'USER') {
+          console.log('User data for redirect:', userData);
+
+          // Сохраняем флаг isProfessor в localStorage
+          localStorage.setItem('isProfessor', userData.isProfessor);
+
+          // Перенаправляем в зависимости от флага isProfessor
+          if (userData.isProfessor) {
             window.location.href = 'professor.html';
           } else {
-            // Если роль неизвестна, перенаправляем на главную
             window.location.href = 'index.html';
           }
         } else {
           // Если ошибка при получении пользователя, удаляем токен
           localStorage.removeItem('jwt');
           localStorage.removeItem('username');
+          console.error('Error getting user info for redirect:', resp.status);
         }
       } catch (e) {
         console.error('Error getting user info:', e);
@@ -156,6 +159,8 @@
               localStorage.setItem('userId', userData.id);
               localStorage.setItem('userEmail', userData.email);
               localStorage.setItem('userRole', userData.role);
+              localStorage.setItem('isProfessor', userData.isProfessor);  // ✅ ДОБАВЛЕНО
+              console.log('📌 Данные пользователя сохранены:', userData);
             }
           } catch (e) {
             console.warn('Could not fetch user data after login:', e);
@@ -188,12 +193,33 @@
     // Регистрация
     document.getElementById('register-form').onsubmit = async (e) => {
       e.preventDefault();
-      const username = document.getElementById('register-username').value;
-      const name = document.getElementById('register-name').value;
-      const email = document.getElementById('register-email').value;
+      const username = document.getElementById('register-username').value.trim();
+      const name = document.getElementById('register-name').value.trim();
+      const email = document.getElementById('register-email').value.trim();
       const password = document.getElementById('register-password').value;
       const errorDiv = document.getElementById('register-error');
       errorDiv.textContent = '';
+
+      // Валидация на фронте
+      if (username.length < 3) {
+        errorDiv.textContent = 'Имя пользователя должно быть минимум 3 символа';
+        return;
+      }
+
+      if (name.length < 3) {
+        errorDiv.textContent = 'Полное имя должно быть минимум 3 символа';
+        return;
+      }
+
+      if (!email.includes('@') || !email.includes('.')) {
+        errorDiv.textContent = 'Введите корректный email адрес';
+        return;
+      }
+
+      if (password.length < 6) {
+        errorDiv.textContent = 'Пароль должен быть минимум 6 символов';
+        return;
+      }
 
       const requestBody = {username, name, email, password};
       console.log('📤 Отправляю на /api/auth/register:', requestBody);
@@ -218,6 +244,7 @@
           localStorage.setItem('userId', userData.id);
           localStorage.setItem('userEmail', userData.email);
           localStorage.setItem('userRole', userData.role);
+          localStorage.setItem('isProfessor', userData.isProfessor);
 
           // Автоматический вход после регистрации
           try {

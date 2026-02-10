@@ -4,6 +4,7 @@ import { addNewLesson } from './handlers/lessonFormHandler.js';
 import { setupContextMenu, deleteItem } from './handlers/contextMenuHandler.js';
 import {
     getProfessors,
+    getUsers,
     getClassrooms,
     getLessonsByScheduleId,
     getSubjects,
@@ -23,22 +24,40 @@ import {
 } from '../../api/api.js';
 import { parseTimeToMinutes } from './utils/utils.js';
 
-// ДОБАВЛЕНО: Функция для управления вкладками (перенесена из tabManager.js)
-export function openTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-
-    document.getElementById(tabId).classList.add('active');
-    document.querySelector(`.tab-btn[onclick="window.openTab('${tabId}')"]`).classList.add('active');
-}
-
 // Делаем функции глобально доступными для встроенных обработчиков событий HTML
-window.openTab = openTab; 
 window.allowDrop = allowDrop;
 window.drag = drag;
 window.drop = drop;
 window.addNewLesson = addNewLesson;
 window.deleteItem = deleteItem;
+window.loadUsersList = function(page = 0) {
+    return loadUsersList(page);
+};
+
+// ===== ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ ДАННЫХ =====
+window.professorsList = [];
+
+// Функция для обновления кеша профессоров
+window.updateProfessorsCache = async function() {
+    try {
+        console.log('🔄 updateProfessorsCache(): Обновляю кеш профессоров...');
+        const professors = await getProfessors();
+        window.professorsList = professors || [];
+        console.log('✅ updateProfessorsCache(): Профессоров в кеше:', window.professorsList.length);
+        if (window.professorsList.length > 0) {
+            window.professorsList.forEach(p => {
+                console.log('   - ' + p.username + ' (' + p.name + ')');
+            });
+        } else {
+            console.warn('⚠️ updateProfessorsCache(): Кеш профессоров пуст!');
+        }
+        return window.professorsList;
+    } catch (err) {
+        console.error('❌ updateProfessorsCache(): Ошибка:', err);
+        return [];
+    }
+};
+
 window.createBreakManual = async function() {
     const day = parseInt(document.getElementById('breakDaySelect').value);
     const start = document.getElementById('breakStartInput').value.trim();
@@ -161,21 +180,64 @@ window.addClassroom = async function() {
 };
 
 window.addProfessor = async function() {
-    const name = document.getElementById('newProfessorName').value.trim();
-    if (!name) {
-        alert('Введите имя преподавателя!');
+    // Получаем данные из формы
+    const username = document.getElementById('newUserUsername')?.value.trim();
+    const name = document.getElementById('newUserName')?.value.trim();
+    const email = document.getElementById('newUserEmail')?.value.trim();
+    const password = document.getElementById('newUserPassword')?.value;
+
+    // Валидация
+    if (!username || username.length < 3) {
+        alert('Username должен быть минимум 3 символа');
         return;
     }
+    if (!name || name.length < 3) {
+        alert('Полное имя должно быть минимум 3 символа');
+        return;
+    }
+    if (!email || !email.includes('@')) {
+        alert('Введите корректный email');
+        return;
+    }
+    if (!password || password.length < 6) {
+        alert('Пароль должен быть минимум 6 символов');
+        return;
+    }
+
     try {
-        await createProfessor({ name });
-        document.getElementById('newProfessorName').value = '';
-        alert('Преподаватель добавлен!');
-        loadProfessorList(0);
-        // Обновить select (используем name как value)
-        const professors = await getProfessors();
-        populateSelect('teacherSelect', professors, 'name');
+        // Отправляем запрос на создание преподавателя
+        const response = await fetch('http://localhost:8080/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, name, email, password, isProfessor: true })
+        });
+
+        if (response.ok) {
+            const userData = await response.json();
+
+            if (userData.isProfessor) {
+                alert(`Пр��подаватель "${name}" успешно добавлен!`);
+                // Очищаем форму
+                document.getElementById('newUserUsername').value = '';
+                document.getElementById('newUserName').value = '';
+                document.getElementById('newUserEmail').value = '';
+                document.getElementById('newUserPassword').value = '';
+
+                // Обновляем список пользователей
+                loadUsersList(0);
+                // Обновляем select с преподавателями
+                const professors = await getProfessors();
+                populateSelect('teacherSelect', professors, 'username');
+            } else {
+                alert('Ошибка: пользователь был создан но не как преподаватель');
+            }
+        } else {
+            const errData = await response.json();
+            alert('Ошибка при добавлении преподавателя: ' + (errData.message || 'Unknown error'));
+        }
     } catch (err) {
-        alert('Ошибка при добавлении преподавателя');
+        console.error('Error adding professor:', err);
+        alert('Ошибка при добавлении преподавателя: ' + err.message);
     }
 };
 
@@ -550,7 +612,7 @@ async function loadFaculties() {
             };
         }
     } catch (error) {
-        console.error('Ошибка при загрузке факультетов:', error);
+        console.error('Ошибка при загр��зке факультетов:', error);
     }
 }
 
@@ -601,6 +663,169 @@ async function loadSchedulesByFaculty() {
         console.error('Ошибка при загрузке расписаний:', error);
     }
 }
+
+/**
+ * Загружает и отображает расписание для выбранного ID
+ * Получает занятия и перерывы, отображает их на доске
+ */
+window.loadSchedule = async function() {
+    try {
+        const scheduleId = document.getElementById('scheduleSelect').value;
+
+        if (!scheduleId) {
+            console.warn('⚠️ Расписание не выбрано');
+            // Очищаем доску и буфер
+            document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+            document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+                dayContainer.innerHTML = '';
+            });
+            return;
+        }
+
+        console.log('📖 Загружаю расписание с ID:', scheduleId);
+
+        // Сохраняем текущее расписание в localStorage
+        localStorage.setItem('currentScheduleId', scheduleId);
+
+        // Очищаем доску и буфер перед загрузкой
+        const bufferContent = document.getElementById('buffer-content');
+        bufferContent.innerHTML = '<h2>Буфер</h2>';
+        const dayContainers = document.querySelectorAll('.table-container tbody td .day');
+        dayContainers.forEach(dayContainer => {
+            dayContainer.innerHTML = '';
+        });
+
+        // Загружаем занятия для расписания
+        const lessons = await getLessonsByScheduleId(scheduleId);
+        console.log('📚 Загружено занятий:', lessons.length);
+
+        // Загружаем перерывы
+        const breaks = await getBreaks(scheduleId);
+        console.log('⏸️ Загружено перерывов:', breaks.length);
+
+        // --- Добавление занятий ---
+        lessons.forEach(lessonData => {
+            // Проверка на корректность данных урока
+            // Поле professor может быть либо professor, либо user в зависимости от API
+            const professor = lessonData.professor || lessonData.user;
+            if (!lessonData || !lessonData.id || !lessonData.subject || !professor || !lessonData.classroom || !lessonData.startTime || !lessonData.endTime) {
+                console.warn('⚠️ Пропуск некорректного занятия:', lessonData);
+                return;
+            }
+
+            let targetContainer;
+            if (lessonData.day === 0) {
+                targetContainer = bufferContent; // Целевой контейнер для буфера
+            } else if (lessonData.day >= 1 && lessonData.day <= dayContainers.length) {
+                targetContainer = dayContainers[lessonData.day - 1]; // Получаем div .day внутри td
+            } else {
+                console.warn(`⚠️ Пропуск занятия ${lessonData.id} с неверным днём: ${lessonData.day}`);
+                return;
+            }
+
+            if (!targetContainer) {
+                console.warn(`⚠️ Контейнер не найден для занятия ${lessonData.id}, день ${lessonData.day}`);
+                return;
+            }
+
+            const d = document.createElement('div');
+            d.className = 'lesson';
+            d.id = "lesson-" + lessonData.id;
+            d.draggable = true;
+            d.ondragstart = window.drag;
+            d.ondragover = window.allowDrop;
+            d.ondrop = window.drop;
+            d.dataset.day = lessonData.day;
+            d.dataset.subjectId = lessonData.subject.id;
+            d.dataset.professorId = professor.id;
+            d.dataset.classroomId = lessonData.classroom.id;
+            d.dataset.startTime = lessonData.startTime;
+            d.dataset.endTime = lessonData.endTime;
+
+            const infoString = `${professor.name}, ${lessonData.classroom.number}`;
+            const timeDisplay = `${lessonData.startTime}-${lessonData.endTime}`;
+
+            d.innerHTML = `
+                <div class="lesson-title">${lessonData.subject.name}</div>
+                <div>${infoString}</div>
+                <div class="lesson-time">${timeDisplay}</div>
+            `;
+
+            // Логика сортировки при добавлении в день или буфер
+            const newLessonStartTime = parseTimeToMinutes(timeDisplay.split('-')[0]);
+            let insertReferenceNode = null;
+
+            for (const child of Array.from(targetContainer.children)) {
+                if (child.classList.contains('lesson')) {
+                    const existingLessonTimeText = child.querySelector('.lesson-time')?.innerText;
+                    if (existingLessonTimeText) {
+                        const existingLessonTime = parseTimeToMinutes(existingLessonTimeText.split('-')[0]);
+                        if (newLessonStartTime < existingLessonTime) {
+                            insertReferenceNode = child;
+                            break;
+                        }
+                    }
+                }
+            }
+            targetContainer.insertBefore(d, insertReferenceNode);
+        });
+
+        // --- Добавление перерывов из базы ---
+        breaks.forEach(breakData => {
+            if (!breakData || !breakData.id || !breakData.day || !breakData.startTime || !breakData.endTime) return;
+            if (breakData.day === 0) {
+                // Добавляем break-block в буфер
+                const b = document.createElement('div');
+                b.className = 'break-block';
+                b.id = "break-" + breakData.id;
+                b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+                b.dataset.breakId = breakData.id;
+                b.dataset.day = breakData.day;
+                b.dataset.startTime = breakData.startTime;
+                b.dataset.endTime = breakData.endTime;
+                b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                b.draggable = true;
+                b.ondragstart = window.drag;
+                b.ondragover = window.allowDrop;
+                b.ondrop = window.drop;
+                bufferContent.appendChild(b);
+            } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
+                // Добавляем break-block в день
+                let lessonDiv = null;
+                for (const child of dayContainers[breakData.day - 1].children) {
+                    if (
+                        child.classList.contains('lesson') &&
+                        child.dataset.endTime === breakData.startTime
+                    ) {
+                        lessonDiv = child;
+                        break;
+                    }
+                }
+                if (lessonDiv) {
+                    const b = document.createElement('div');
+                    b.className = 'break-block';
+                    b.id = "break-" + breakData.id;
+                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+                    b.dataset.breakId = breakData.id;
+                    b.dataset.day = breakData.day;
+                    b.dataset.startTime = breakData.startTime;
+                    b.dataset.endTime = breakData.endTime;
+                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                    b.draggable = true;
+                    b.ondragstart = window.drag;
+                    b.ondragover = window.allowDrop;
+                    b.ondrop = window.drop;
+                    dayContainers[breakData.day - 1].insertBefore(b, lessonDiv.nextSibling);
+                }
+            }
+        });
+
+        console.log('✅ Расписание успешно загружено');
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке расписания:', error);
+        alert('Ошибка при загрузке расписания: ' + error.message);
+    }
+};
 
 async function loadSchedules() {
     // Сохраняем текущий выбранный факультет
@@ -672,216 +897,6 @@ async function loadScheduleList(page = 0, pageSize = 50) {
     return schedules.length > (page + 1) * pageSize;
 }
 
-window.loadSchedule = async function() {
-    const scheduleId = document.getElementById('scheduleSelect').value;
-    const facultyId = document.getElementById('facultySelect').value;
-
-    if (!scheduleId) {
-        return;
-    }
-
-    localStorage.setItem('currentScheduleId', scheduleId);
-    localStorage.setItem('currentFacultyId', facultyId);
-
-    // Очищаем текущее расписание на доске
-    document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
-    document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
-        dayContainer.innerHTML = '';
-    });
-
-    try {
-        // Загружаем занятия для этого расписания
-        let lessonsData = await getLessonsByScheduleId(scheduleId);
-        let breaksData = await getBreaks(scheduleId);
-
-        console.log(`📋 Загружаем расписание ID=${scheduleId}`);
-        console.log(`📚 Получено занятий:`, lessonsData?.length || 0);
-        console.log(`⏱️ Получено перерывов:`, breaksData?.length || 0);
-
-        // Попытка fallback ТОЛЬКО если оба пусты И если есть scheduleId в данных для фильтрации
-        if ((!lessonsData || lessonsData.length === 0) && (!breaksData || breaksData.length === 0)) {
-            console.warn('⚠️ Новые эндпоинты вернули пустые данные для расписания ' + scheduleId);
-
-            // Загружаем все данные для проверки наличия scheduleId
-            try {
-                const allLessons = await apiRequest('/api/schedule');
-                const allBreaks = await apiRequest('/api/break');
-
-                // Проверяем, есть ли scheduleId в данных
-                const hasScheduleId = (Array.isArray(allLessons) && allLessons.length > 0 && allLessons[0].scheduleId !== undefined) ||
-                                     (Array.isArray(allBreaks) && allBreaks.length > 0 && allBreaks[0].scheduleId !== undefined);
-
-                if (hasScheduleId) {
-                    console.log('✅ Данные содержат scheduleId, фильтруем по расписанию ' + scheduleId);
-                    lessonsData = Array.isArray(allLessons)
-                        ? allLessons.filter(lesson => lesson.scheduleId == scheduleId)
-                        : [];
-                    breaksData = Array.isArray(allBreaks)
-                        ? allBreaks.filter(brk => brk.scheduleId == scheduleId)
-                        : [];
-                    console.log(`✅ Загружены через fallback с фильтрацией - занятий: ${lessonsData.length}, перерывов: ${breaksData.length}`);
-                } else {
-                    console.warn('❌ Данные НЕ содержат scheduleId, fallback невозможен. Показываем пусто для этого расписания.');
-                    lessonsData = [];
-                    breaksData = [];
-                }
-            } catch (fallbackError) {
-                console.error('❌ Fallback ошибка:', fallbackError);
-                lessonsData = [];
-                breaksData = [];
-            }
-        }
-
-        // Обработка разных типов возвращаемых данных
-        if (!Array.isArray(lessonsData)) {
-            lessonsData = [];
-        }
-
-        if (!Array.isArray(breaksData)) {
-            breaksData = [];
-        }
-
-        console.log(`✨ Итого - занятий: ${lessonsData.length}, перерывов: ${breaksData.length}`);
-
-        const bufferContent = document.getElementById('buffer-content');
-        const dayContainers = document.querySelectorAll('.table-container tbody td .day');
-
-        // --- Добавление занятий ---
-        if (Array.isArray(lessonsData) && lessonsData.length > 0) {
-            lessonsData.forEach((lessonData, index) => {
-                if (!lessonData || !lessonData.id || !lessonData.subject || !lessonData.professor || !lessonData.classroom || !lessonData.startTime || !lessonData.endTime) {
-                    console.warn(`⏭️ Пропуск некорректного занятия ID=${lessonData?.id}`);
-                    return;
-                }
-
-                console.log(`✅ Добавляем: ${lessonData.subject?.name} (${lessonData.startTime}-${lessonData.endTime})`);
-
-                let targetContainer;
-                if (lessonData.day === 0) {
-                    targetContainer = bufferContent; // Целевой контейнер для буфера
-                } else if (lessonData.day >= 1 && lessonData.day <= dayContainers.length) {
-                    targetContainer = dayContainers[lessonData.day - 1]; // Получаем div .day внутри td
-                } else {
-                    console.warn(`Skipping lesson ${lessonData.id} due to invalid day value: ${lessonData.day}`);
-                    return;
-                }
-
-                if (!targetContainer) {
-                    console.warn(`Target container not found for lesson ${lessonData.id}, day ${lessonData.day}`);
-                    return;
-                }
-
-                const d = document.createElement('div');
-                d.className = 'lesson';
-                d.id = "lesson-" + lessonData.id;
-                d.draggable = true;
-                d.ondragstart = window.drag;
-                d.ondragover = window.allowDrop;
-                d.ondrop = window.drop;
-                d.dataset.day = lessonData.day;
-                d.dataset.subjectId = lessonData.subject.id;
-                d.dataset.professorId = lessonData.professor.id;
-                d.dataset.classroomId = lessonData.classroom.id;
-                d.dataset.startTime = lessonData.startTime;
-                d.dataset.endTime = lessonData.endTime;
-
-                const infoString = `${lessonData.professor.name}, ${lessonData.classroom.number}`;
-                const timeDisplay = `${lessonData.startTime}-${lessonData.endTime}`;
-
-                d.innerHTML = `
-                    <div class="lesson-title">${lessonData.subject.name}</div>
-                    <div>${infoString}</div>
-                    <div class="lesson-time">${timeDisplay}</div>
-                `;
-
-                // Логика сортировки при добавлении в день или буфер
-                const newLessonStartTime = parseTimeToMinutes(timeDisplay.split('-')[0]);
-                let insertReferenceNode = null;
-
-                for (const child of Array.from(targetContainer.children)) {
-                    if (child.classList.contains('lesson')) {
-                        const existingLessonTimeText = child.querySelector('.lesson-time')?.innerText;
-                        if (existingLessonTimeText) {
-                            const existingLessonTime = parseTimeToMinutes(existingLessonTimeText.split('-')[0]);
-                            if (newLessonStartTime < existingLessonTime) {
-                                insertReferenceNode = child;
-                                break;
-                            }
-                        }
-                    }
-                }
-                targetContainer.insertBefore(d, insertReferenceNode);
-            });
-        }
-
-        // --- Добавление перерывов из базы ---
-        if (Array.isArray(breaksData)) {
-            breaksData.forEach(breakData => {
-                if (!breakData || !breakData.id || breakData.day === null || breakData.day === undefined || !breakData.startTime || !breakData.endTime) {
-                    console.warn('Skipping invalid break:', breakData);
-                    return;
-                }
-
-                console.log(`📍 Загружаем break из БД: ID=${breakData.id}, day=${breakData.day}, time=${breakData.startTime}-${breakData.endTime}`);
-
-                if (breakData.day === 0) {
-                    const b = document.createElement('div');
-                    b.className = 'break-block';
-                    b.id = "break-" + breakData.id;
-                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                    b.dataset.breakId = breakData.id;
-                    b.dataset.day = breakData.day;
-                    b.dataset.startTime = breakData.startTime;
-                    b.dataset.endTime = breakData.endTime;
-                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                    b.draggable = true;
-                    b.ondragstart = window.drag;
-                    b.ondragover = window.allowDrop;
-                    b.ondrop = window.drop;
-                    bufferContent.appendChild(b);
-                    console.log(`✅ Break ${breakData.id} добавлен в буфер`);
-                } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
-                    const b = document.createElement('div');
-                    b.className = 'break-block';
-                    b.id = "break-" + breakData.id;
-                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                    b.dataset.breakId = breakData.id;
-                    b.dataset.day = breakData.day;
-                    b.dataset.startTime = breakData.startTime;
-                    b.dataset.endTime = breakData.endTime;
-                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                    b.draggable = true;
-                    b.ondragstart = window.drag;
-                    b.ondragover = window.allowDrop;
-                    b.ondrop = window.drop;
-
-                    const dayContainer = dayContainers[breakData.day - 1];
-                    const breakStartMinutes = parseTimeToMinutes(breakData.startTime);
-                    let insertReferenceNode = null;
-
-                    for (const child of Array.from(dayContainer.children)) {
-                        if (child.dataset && child.dataset.startTime) {
-                            const childStartMinutes = parseTimeToMinutes(child.dataset.startTime);
-                            if (breakStartMinutes < childStartMinutes) {
-                                insertReferenceNode = child;
-                                break;
-                            }
-                        }
-                    }
-
-                    dayContainer.insertBefore(b, insertReferenceNode);
-                    console.log(`✅ Break ${breakData.id} добавлен в день ${breakData.day}`);
-                }
-            });
-        }
-
-    } catch (error) {
-        console.error("Ошибка при загрузке расписания:", error);
-        alert('Ошибка при загрузке расписания: ' + error.message);
-    }
-};
-
-// --- Пагинация для списков с кнопками удаления и редактированием ---
 async function loadClassroomList(page = 0, pageSize = 50) {
     const classrooms = await getClassrooms();
     const container = document.getElementById('classroom-list');
@@ -952,41 +967,68 @@ async function loadProfessorList(page = 0, pageSize = 50) {
     slice.forEach(p => {
         const div = document.createElement('div');
         div.className = 'scroll-list-item';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.padding = '10px';
+        div.style.border = '1px solid #ddd';
+        div.style.borderRadius = '5px';
+        div.style.marginBottom = '8px';
 
+        // Информация о преподавателе (username, name, email)
+        const infoDiv = document.createElement('div');
+        infoDiv.style.flex = '1';
+        infoDiv.style.cursor = 'pointer';
+
+        // Username (полужирный)
+        const usernameSpan = document.createElement('span');
+        usernameSpan.textContent = p.username || p.name;
+        usernameSpan.style.fontWeight = 'bold';
+        usernameSpan.style.marginRight = '10px';
+        usernameSpan.style.fontSize = '16px';
+
+        // Full name
         const nameSpan = document.createElement('span');
         nameSpan.textContent = p.name;
-        nameSpan.style.cursor = 'pointer';
-        nameSpan.onclick = () => {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = p.name;
-            input.className = 'edit-input';
-            input.onkeydown = async (e) => {
-                if (e.key === 'Enter') {
-                    try {
-                        await updateProfessor(p.id || p.name, { name: input.value });
-                        nameSpan.textContent = input.value;
-                        div.replaceChild(nameSpan, input);
-                    } catch (err) {
-                        alert('Ошибка при обновлении преподавателя');
-                    }
+        nameSpan.style.marginRight = '10px';
+        nameSpan.style.color = '#555';
+
+        // Email
+        const emailSpan = document.createElement('span');
+        emailSpan.textContent = p.email ? `(${p.email})` : '';
+        emailSpan.style.color = '#999';
+        emailSpan.style.fontSize = '12px';
+
+        infoDiv.appendChild(usernameSpan);
+        infoDiv.appendChild(document.createElement('br'));
+        infoDiv.appendChild(nameSpan);
+        infoDiv.appendChild(emailSpan);
+
+        // Edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-btn';
+        editBtn.textContent = 'Изменить';
+        editBtn.style.marginRight = '5px';
+        editBtn.onclick = () => {
+            const newName = prompt('Новое полное имя:', p.name);
+            if (newName) {
+                try {
+                    updateProfessor(p.id, { name: newName });
+                    nameSpan.textContent = newName;
+                } catch (err) {
+                    alert('Ошибка при обновлении преподавателя');
                 }
-                if (e.key === 'Escape') {
-                    div.replaceChild(nameSpan, input);
-                }
-            };
-            input.onblur = () => div.replaceChild(nameSpan, input);
-            div.replaceChild(input, nameSpan);
-            input.focus();
+            }
         };
 
+        // Delete button
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
         delBtn.textContent = 'Удалить';
         delBtn.onclick = async () => {
-            if (confirm('Удалить преподавателя?')) {
+            if (confirm(`Удалить преподавателя "${p.name}" (${p.username})?`)) {
                 try {
-                    await deleteProfessor(Number(p.id || p.name)); // Преобразуем к числу
+                    await deleteProfessor(p.id);
                     div.remove();
                 } catch (err) {
                     alert('Ошибка при удалении преподавателя');
@@ -994,7 +1036,8 @@ async function loadProfessorList(page = 0, pageSize = 50) {
             }
         };
 
-        div.appendChild(nameSpan);
+        div.appendChild(infoDiv);
+        div.appendChild(editBtn);
         div.appendChild(delBtn);
         container.appendChild(div);
     });
@@ -1059,6 +1102,133 @@ async function loadSubjectList(page = 0, pageSize = 50) {
     return subjects.length > (page + 1) * pageSize;
 }
 
+async function loadUsersList(page = 0, pageSize = 50) {
+    try {
+        const users = await getUsers();
+        const container = document.getElementById('users-list');
+        if (!container) return;
+        if (page === 0) container.innerHTML = '';
+
+        const slice = users.slice(page * pageSize, (page + 1) * pageSize);
+        slice.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.padding = '12px';
+            div.style.marginBottom = '8px';
+            div.style.border = '1px solid #ddd';
+            div.style.borderRadius = '5px';
+            div.style.backgroundColor = user.isProfessor ? '#fff3cd' : '#f8f9fa';
+
+            // Информация о пользователе
+            const infoDiv = document.createElement('div');
+            infoDiv.style.flex = '1';
+
+            // Username (полужирный)
+            const usernameSpan = document.createElement('span');
+            usernameSpan.textContent = user.username;
+            usernameSpan.style.fontWeight = 'bold';
+            usernameSpan.style.fontSize = '14px';
+            usernameSpan.style.marginRight = '10px';
+
+            // Full name и role
+            const detailsSpan = document.createElement('span');
+            detailsSpan.textContent = `${user.name} (${user.role})`;
+            detailsSpan.style.color = '#555';
+            detailsSpan.style.fontSize = '13px';
+            detailsSpan.style.marginRight = '10px';
+
+            // Email (СКРЫТО)
+            // const emailSpan = document.createElement('span');
+            // emailSpan.textContent = user.email || '';
+            // emailSpan.style.color = '#999';
+            // emailSpan.style.fontSize = '12px';
+
+            infoDiv.appendChild(usernameSpan);
+            infoDiv.appendChild(detailsSpan);
+            // infoDiv.appendChild(emailSpan);
+
+            // Переключатель isProfessor
+            const toggleDiv = document.createElement('div');
+            toggleDiv.style.display = 'flex';
+            toggleDiv.style.alignItems = 'center';
+            toggleDiv.style.gap = '8px';
+
+            const label = document.createElement('label');
+            label.textContent = 'Профессор:';
+            label.style.marginRight = '5px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = user.isProfessor || false;
+            checkbox.style.width = '20px';
+            checkbox.style.height = '20px';
+            checkbox.style.cursor = 'pointer';
+            checkbox.onchange = async () => {
+                try {
+                    console.log(`🔄 Обновляю isProfessor для пользователя ${user.id}, новое значение: ${checkbox.checked}`);
+                    console.log('👤 Полные данные пользователя:', user);
+                    // Отправляем полный объект пользователя с обновленным полем
+                    const updatedUser = {
+                        ...user,
+                        isProfessor: checkbox.checked
+                    };
+                    console.log('📤 Отправляю обновленные данные:', updatedUser);
+                    const response = await updateProfessor(user.id, updatedUser);
+                    console.log('✅ Ответ сервера:', response);
+                    console.log('✅ Профессор успешно обновлен');
+                    // Обновляем фон
+                    div.style.backgroundColor = checkbox.checked ? '#fff3cd' : '#f8f9fa';
+                    // Перезагружаем список пользователей с нулевой страницей
+                    console.log('🔄 Перезагружаю список пользователей...');
+                    await loadUsersList(0);
+                    // Обновляем список селектов преподавателей
+                    const professors = await getProfessors();
+                    populateSelect('teacherSelect', professors, 'username');
+                } catch (err) {
+                    console.error('❌ Ошибка при обновлении статуса профессора:', err);
+                    console.error('❌ Полная ошибка:', err.message);
+                    checkbox.checked = !checkbox.checked;
+                    alert('Ошибка при обновлении статуса профессора: ' + err.message);
+                }
+            };
+
+            toggleDiv.appendChild(label);
+            toggleDiv.appendChild(checkbox);
+
+            // Кнопка удалить
+            const delBtn = document.createElement('button');
+            delBtn.textContent = 'Удалить';
+            delBtn.className = 'delete-btn';
+            delBtn.style.marginLeft = '10px';
+            delBtn.onclick = async () => {
+                if (confirm(`Удалить пользователя "${user.username}"?`)) {
+                    try {
+                        await apiRequest(`/api/users/${user.id}`, { method: 'DELETE' });
+                        div.remove();
+                        // Обновляем списки
+                        const professors = await getProfessors();
+                        populateSelect('teacherSelect', professors, 'username');
+                    } catch (err) {
+                        alert('Ошибка при удалении пользователя');
+                    }
+                }
+            };
+
+            div.appendChild(infoDiv);
+            div.appendChild(toggleDiv);
+            div.appendChild(delBtn);
+            container.appendChild(div);
+        });
+
+        return users.length > (page + 1) * pageSize;
+    } catch (err) {
+        console.error('Error loading users list:', err);
+    }
+}
+
 // --- Lazy loading при скролле ---
 function setupScrollLoading(listId, loaderFn) {
     const container = document.getElementById(listId);
@@ -1086,7 +1256,13 @@ window.openTab = function(tabId) {
     document.querySelector(`.tab-btn[onclick="window.openTab('${tabId}')"]`).classList.add('active');
     // При открытии вкладки — загружаем соответствующий список
     if (tabId === 'add-classroom-tab') setupScrollLoading('classroom-list', loadClassroomList);
-    if (tabId === 'add-professor-tab') setupScrollLoading('professor-list', loadProfessorList);
+    if (tabId === 'add-professor-tab') {
+        setupScrollLoading('professor-list', loadProfessorList);
+        // Загружаем список пользователей
+        setupScrollLoading('users-list', loadUsersList);
+        // Инициальная загрузка пользователей
+        loadUsersList(0);
+    }
     if (tabId === 'add-subject-tab') setupScrollLoading('subject-list', loadSubjectList);
     // Удаляем эту строку, так как теперь это модальное окно
     // if (tabId === 'add-schedule-tab') setupScrollLoading('schedule-list', loadScheduleList);
@@ -1094,13 +1270,20 @@ window.openTab = function(tabId) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        console.log('🔄 DOMContentLoaded: Загружаю данные...');
+
         const subjects = await getSubjects();
+        console.log('📚 Получены предметы:', subjects?.length || 0);
         populateSelect('subjectSelect', subjects, 'name');
 
-        const professors = await getProfessors();
-        populateSelect('teacherSelect', professors, 'name');
+        // ✅ ОБНОВЛЯЕМ КЕШ ПРОФЕССОРОВ - это загружает ВСЕ профессоров
+        await window.updateProfessorsCache();
+        console.log('👨‍🏫 Кеш профессоров обновлен:', window.professorsList.length);
+        populateSelect('teacherSelect', window.professorsList, 'name');
+        console.log('✅ teacherSelect заполнен профессорами:', window.professorsList.length);
 
         const classrooms = await getClassrooms();
+        console.log('🏫 Получены аудитории:', classrooms?.length || 0);
         populateSelect('classroomSelect', classrooms, 'number');
 
         setupContextMenu();
@@ -1109,7 +1292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadSchedules();
 
         // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
-        openTab('lesson-tab-content'); 
+        window.openTab('lesson-tab-content');
 
         // Загружаем расписание по умолчанию или последнее выбранное
         const initialScheduleId = localStorage.getItem('currentScheduleId');
@@ -1168,3 +1351,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Ошибка при загрузке приложения:", error);
     }
 });
+

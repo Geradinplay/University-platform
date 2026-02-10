@@ -257,7 +257,7 @@ async function updateLessonOnServer(el, id, day) {
             endTime: el.dataset.endTime,
             day: day,
             subjectId: Number(el.dataset.subjectId),
-            professorId: Number(el.dataset.professorId),
+            userId: Number(el.dataset.professorId),  // Используем userId вместо professorId
             classroomId: Number(el.dataset.classroomId),
             scheduleId: Number(localStorage.getItem('currentScheduleId') || 1)
         };

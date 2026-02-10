@@ -82,7 +82,10 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('jwt');
 
+    console.log('👨‍🎓 professor.html: Проверяю доступ. Token:', !!token);
+
     if (!token) {
+      console.warn('⚠️ Нет токена, перенаправляю на auth.html');
       window.location.href = 'auth.html';
       return;
     }
@@ -99,12 +102,7 @@
 
       if (resp.ok) {
         const userData = await resp.json();
-
-        // Проверяем роль - если ADMIN, перенаправляем на главную
-        if (userData.role === 'ADMIN') {
-          window.location.href = 'index.html';
-          return;
-        }
+        console.log('✅ Пользователь загружен:', userData.username, 'Role:', userData.role);
 
         // Сохраняем данные в localStorage для быстрого доступа
         localStorage.setItem('userId', userData.id);
@@ -112,6 +110,7 @@
         localStorage.setItem('username', userData.username);
         localStorage.setItem('userEmail', userData.email);
         localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('isProfessor', userData.isProfessor);
 
         // Выводим информацию о профессоре
         const displayNameEl = document.getElementById('prof-display-name');
@@ -130,6 +129,7 @@
 
       } else if (resp.status === 401) {
         // Токен невалидный, перенаправляем на вход
+        console.warn('⚠️ Токен невалидный (401), очищаю localStorage и перенаправляю на auth.html');
         localStorage.clear();
         window.location.href = 'auth.html';
       } else {
