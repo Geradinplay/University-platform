@@ -5,16 +5,19 @@ import { setupContextMenu, deleteItem } from './handlers/contextMenuHandler.js';
 import {
     getProfessors,
     getClassrooms,
-    getSchedule,
+    getLessonsByScheduleId,
     getSubjects,
     getBreaks,
     createBreak,
     login,
     register,
+    apiRequest,
     // Добавить новые API:
     createSubject, updateSubject, deleteSubject,
     createProfessor, updateProfessor, deleteProfessor,
     createClassroom, updateClassroom, deleteClassroom,
+    // Функции для работы с факультетами:
+    getFaculties, getFacultyById, createFaculty, updateFaculty, deleteFaculty,
     // Функции для работы с расписаниями:
     getSchedules, getScheduleById, createSchedule, updateSchedule, deleteSchedule
 } from '../../api/api.js';
@@ -192,6 +195,421 @@ window.addSubject = async function() {
         populateSelect('subjectSelect', subjects, 'name');
     } catch (err) {
         alert('Ошибка при добавлении предмета');
+    }
+};
+
+window.addFaculty = async function() {
+    const name = document.getElementById('createFacultyName').value.trim();
+    const shortName = document.getElementById('createFacultyShortName').value.trim();
+    if (!name) {
+        alert('Введите название факультета!');
+        return;
+    }
+    if (!shortName) {
+        alert('Введите краткое название факультета!');
+        return;
+    }
+    try {
+        await createFaculty({ name, shortName });
+        document.getElementById('createFacultyName').value = '';
+        document.getElementById('createFacultyShortName').value = '';
+        alert('Факультет добавлен!');
+        await loadFaculties(); // Перезагрузить список факультетов
+        closeCreateFacultyModal(); // Закрыть модальное окно после создания
+    } catch (err) {
+        alert('Ошибка при добавлении факультета');
+        console.error(err);
+    }
+};
+
+window.addSchedule = async function() {
+    const name = document.getElementById('createScheduleName').value.trim();
+    const facultyId = parseInt(document.getElementById('createScheduleFacultyId').value);
+    if (!name) {
+        alert('Введите название расписания!');
+        return;
+    }
+    if (isNaN(facultyId)) {
+        alert('Выберите факультет!');
+        return;
+    }
+    try {
+        await createSchedule({ name, facultyId });
+        document.getElementById('createScheduleName').value = '';
+        document.getElementById('createScheduleFacultyId').value = '';
+        alert('Расписание добавлено!');
+        await loadSchedules(); // Перезагрузить список факультетов и расписаний
+        closeCreateScheduleModal(); // Закрыть модальное окно после создания
+    } catch (err) {
+        alert('Ошибка при добавлении расписания');
+    }
+};
+
+// Функции для управления модальным окном создания расписания
+window.openCreateScheduleModal = function() {
+    // Заполняем список факультетов в модальном окне расписания
+    const scheduleSelect = document.getElementById('createScheduleFacultyId');
+    const facultySelect = document.getElementById('facultySelect');
+    scheduleSelect.innerHTML = '<option value="">-- Выберите факультет --</option>';
+
+    Array.from(facultySelect.options).forEach(option => {
+        if (option.value) {
+            const newOption = document.createElement('option');
+            newOption.value = option.value;
+            newOption.textContent = option.textContent;
+            scheduleSelect.appendChild(newOption);
+        }
+    });
+
+    document.getElementById('create-schedule-modal').classList.add('active');
+};
+
+function closeCreateScheduleModal() {
+    document.getElementById('create-schedule-modal').classList.remove('active');
+    document.getElementById('createScheduleName').value = '';
+    document.getElementById('createScheduleFacultyId').value = '';
+}
+
+// Функции для управления модальным окном создания факультета
+window.openCreateFacultyModal = function() {
+    document.getElementById('create-faculty-modal').classList.add('active');
+};
+
+function closeCreateFacultyModal() {
+    document.getElementById('create-faculty-modal').classList.remove('active');
+    document.getElementById('createFacultyName').value = '';
+    document.getElementById('createFacultyShortName').value = '';
+}
+
+async function loadFaculties() {
+    try {
+        const faculties = await getFaculties();
+
+        // Заполняем select факультетов
+        const facultySelect = document.getElementById('facultySelect');
+        if (facultySelect) {
+            facultySelect.innerHTML = '<option value="">-- Выберите факультет --</option>';
+            faculties.forEach(faculty => {
+                const option = document.createElement('option');
+                option.value = faculty.id;
+                option.textContent = faculty.name;
+                facultySelect.appendChild(option);
+            });
+
+            // Добавляем обработчик изменения факультета
+            facultySelect.onchange = async () => {
+                localStorage.setItem('currentFacultyId', facultySelect.value);
+                await loadSchedulesByFaculty();
+            };
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке факультетов:', error);
+    }
+}
+
+async function loadSchedulesByFaculty() {
+    try {
+        const facultyId = document.getElementById('facultySelect').value;
+        const scheduleSelect = document.getElementById('scheduleSelect');
+
+        if (!facultyId) {
+            scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
+            return;
+        }
+
+        const schedules = await getSchedules();
+        const filteredSchedules = schedules.filter(s => s.facultyId == facultyId);
+
+        scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
+        filteredSchedules.forEach(schedule => {
+            const option = document.createElement('option');
+            option.value = schedule.id;
+            option.textContent = schedule.name;
+            scheduleSelect.appendChild(option);
+        });
+
+        // Добавляем обработчик для автоматической загрузки при выборе расписания
+        scheduleSelect.onchange = () => {
+            if (scheduleSelect.value) {
+                window.loadSchedule();
+            }
+        };
+    } catch (error) {
+        console.error('Ошибка при загрузке расписаний:', error);
+    }
+}
+
+async function loadSchedules() {
+    await loadFaculties();
+}
+
+async function loadScheduleList(page = 0, pageSize = 50) {
+    const schedules = await getSchedules();
+    const container = document.getElementById('schedule-list');
+    if (!container) return;
+    if (page === 0) container.innerHTML = '';
+    const slice = schedules.slice(page * pageSize, (page + 1) * pageSize);
+    slice.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'scroll-list-item';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = s.name;
+        nameSpan.style.cursor = 'pointer';
+        nameSpan.onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = s.name;
+            input.className = 'edit-input';
+            input.onkeydown = async (e) => {
+                if (e.key === 'Enter') {
+                    try {
+                        await updateSchedule(s.id, { name: input.value, facultyId: s.facultyId });
+                        nameSpan.textContent = input.value;
+                        div.replaceChild(nameSpan, input);
+                        loadSchedules(); // Обновить список выбора расписаний
+                    } catch (err) {
+                        alert('Ошибка при обновлении расписания');
+                    }
+                }
+                if (e.key === 'Escape') {
+                    div.replaceChild(nameSpan, input);
+                }
+            };
+            input.onblur = () => div.replaceChild(nameSpan, input);
+            div.replaceChild(input, nameSpan);
+            input.focus();
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = 'Удалить';
+        delBtn.onclick = async () => {
+            if (confirm('Удалить расписание?')) {
+                try {
+                    await deleteSchedule(s.id);
+                    div.remove();
+                    loadSchedules(); // Обновить список выбора расписаний
+                } catch (err) {
+                    alert('Ошибка при удалении расписания');
+                }
+            }
+        };
+
+        div.appendChild(nameSpan);
+        div.appendChild(delBtn);
+        container.appendChild(div);
+    });
+    return schedules.length > (page + 1) * pageSize;
+}
+
+window.loadSchedule = async function() {
+    const scheduleId = document.getElementById('scheduleSelect').value;
+    const facultyId = document.getElementById('facultySelect').value;
+
+    if (!scheduleId) {
+        alert('Пожалуйста, выберите расписание для загрузки.');
+        return;
+    }
+
+    localStorage.setItem('currentScheduleId', scheduleId);
+    localStorage.setItem('currentFacultyId', facultyId);
+
+    // Очищаем текущее расписание на доске
+    document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+    document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+        dayContainer.innerHTML = '';
+    });
+
+    try {
+        // Загружаем занятия для этого расписания
+        let lessonsData = await getLessonsByScheduleId(scheduleId);
+        let breaksData = await getBreaks(scheduleId);
+
+        console.log(`📋 Загружаем расписание ID=${scheduleId}`);
+        console.log(`📚 Получено занятий:`, lessonsData?.length || 0);
+        console.log(`⏱️ Получено перерывов:`, breaksData?.length || 0);
+
+        // Попытка fallback ТОЛЬКО если оба пусты И если есть scheduleId в данных для фильтрации
+        if ((!lessonsData || lessonsData.length === 0) && (!breaksData || breaksData.length === 0)) {
+            console.warn('⚠️ Новые эндпоинты вернули пустые данные для расписания ' + scheduleId);
+
+            // Загружаем все данные для проверки наличия scheduleId
+            try {
+                const allLessons = await apiRequest('/api/schedule');
+                const allBreaks = await apiRequest('/api/break');
+
+                // Проверяем, есть ли scheduleId в данных
+                const hasScheduleId = (Array.isArray(allLessons) && allLessons.length > 0 && allLessons[0].scheduleId !== undefined) ||
+                                     (Array.isArray(allBreaks) && allBreaks.length > 0 && allBreaks[0].scheduleId !== undefined);
+
+                if (hasScheduleId) {
+                    console.log('✅ Данные содержат scheduleId, фильтруем по расписанию ' + scheduleId);
+                    lessonsData = Array.isArray(allLessons)
+                        ? allLessons.filter(lesson => lesson.scheduleId == scheduleId)
+                        : [];
+                    breaksData = Array.isArray(allBreaks)
+                        ? allBreaks.filter(brk => brk.scheduleId == scheduleId)
+                        : [];
+                    console.log(`✅ Загружены через fallback с фильтрацией - занятий: ${lessonsData.length}, перерывов: ${breaksData.length}`);
+                } else {
+                    console.warn('❌ Данные НЕ содержат scheduleId, fallback невозможен. Показываем пусто для этого расписания.');
+                    lessonsData = [];
+                    breaksData = [];
+                }
+            } catch (fallbackError) {
+                console.error('❌ Fallback ошибка:', fallbackError);
+                lessonsData = [];
+                breaksData = [];
+            }
+        }
+
+        // Обработка разных типов возвращаемых данных
+        if (!Array.isArray(lessonsData)) {
+            lessonsData = [];
+        }
+
+        if (!Array.isArray(breaksData)) {
+            breaksData = [];
+        }
+
+        console.log(`✨ Итого - занятий: ${lessonsData.length}, перерывов: ${breaksData.length}`);
+
+        const bufferContent = document.getElementById('buffer-content');
+        const dayContainers = document.querySelectorAll('.table-container tbody td .day');
+
+        // --- Добавление занятий ---
+        if (Array.isArray(lessonsData) && lessonsData.length > 0) {
+            lessonsData.forEach((lessonData, index) => {
+                if (!lessonData || !lessonData.id || !lessonData.subject || !lessonData.professor || !lessonData.classroom || !lessonData.startTime || !lessonData.endTime) {
+                    console.warn(`⏭️ Пропуск некорректного занятия ID=${lessonData?.id}`);
+                    return;
+                }
+
+                console.log(`✅ Добавляем: ${lessonData.subject?.name} (${lessonData.startTime}-${lessonData.endTime})`);
+
+                let targetContainer;
+                if (lessonData.day === 0) {
+                    targetContainer = bufferContent; // Целевой контейнер для буфера
+                } else if (lessonData.day >= 1 && lessonData.day <= dayContainers.length) {
+                    targetContainer = dayContainers[lessonData.day - 1]; // Получаем div .day внутри td
+                } else {
+                    console.warn(`Skipping lesson ${lessonData.id} due to invalid day value: ${lessonData.day}`);
+                    return;
+                }
+
+                if (!targetContainer) {
+                    console.warn(`Target container not found for lesson ${lessonData.id}, day ${lessonData.day}`);
+                    return;
+                }
+
+                const d = document.createElement('div');
+                d.className = 'lesson';
+                d.id = "lesson-" + lessonData.id;
+                d.draggable = true;
+                d.ondragstart = window.drag;
+                d.ondragover = window.allowDrop;
+                d.ondrop = window.drop;
+                d.dataset.day = lessonData.day;
+                d.dataset.subjectId = lessonData.subject.id;
+                d.dataset.professorId = lessonData.professor.id;
+                d.dataset.classroomId = lessonData.classroom.id;
+                d.dataset.startTime = lessonData.startTime;
+                d.dataset.endTime = lessonData.endTime;
+
+                const infoString = `${lessonData.professor.name}, ${lessonData.classroom.number}`;
+                const timeDisplay = `${lessonData.startTime}-${lessonData.endTime}`;
+
+                d.innerHTML = `
+                    <div class="lesson-title">${lessonData.subject.name}</div>
+                    <div>${infoString}</div>
+                    <div class="lesson-time">${timeDisplay}</div>
+                `;
+
+                // Логика сортировки при добавлении в день или буфер
+                const newLessonStartTime = parseTimeToMinutes(timeDisplay.split('-')[0]);
+                let insertReferenceNode = null;
+
+                for (const child of Array.from(targetContainer.children)) {
+                    if (child.classList.contains('lesson')) {
+                        const existingLessonTimeText = child.querySelector('.lesson-time')?.innerText;
+                        if (existingLessonTimeText) {
+                            const existingLessonTime = parseTimeToMinutes(existingLessonTimeText.split('-')[0]);
+                            if (newLessonStartTime < existingLessonTime) {
+                                insertReferenceNode = child;
+                                break;
+                            }
+                        }
+                    }
+                }
+                targetContainer.insertBefore(d, insertReferenceNode);
+            });
+        }
+
+        // --- Добавление перерывов из базы ---
+        if (Array.isArray(breaksData)) {
+            breaksData.forEach(breakData => {
+                if (!breakData || !breakData.id || breakData.day === null || breakData.day === undefined || !breakData.startTime || !breakData.endTime) {
+                    console.warn('Skipping invalid break:', breakData);
+                    return;
+                }
+
+                console.log(`📍 Загружаем break из БД: ID=${breakData.id}, day=${breakData.day}, time=${breakData.startTime}-${breakData.endTime}`);
+
+                if (breakData.day === 0) {
+                    const b = document.createElement('div');
+                    b.className = 'break-block';
+                    b.id = "break-" + breakData.id;
+                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+                    b.dataset.breakId = breakData.id;
+                    b.dataset.day = breakData.day;
+                    b.dataset.startTime = breakData.startTime;
+                    b.dataset.endTime = breakData.endTime;
+                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                    b.draggable = true;
+                    b.ondragstart = window.drag;
+                    b.ondragover = window.allowDrop;
+                    b.ondrop = window.drop;
+                    bufferContent.appendChild(b);
+                    console.log(`✅ Break ${breakData.id} добавлен в буфер`);
+                } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
+                    const b = document.createElement('div');
+                    b.className = 'break-block';
+                    b.id = "break-" + breakData.id;
+                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+                    b.dataset.breakId = breakData.id;
+                    b.dataset.day = breakData.day;
+                    b.dataset.startTime = breakData.startTime;
+                    b.dataset.endTime = breakData.endTime;
+                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+                    b.draggable = true;
+                    b.ondragstart = window.drag;
+                    b.ondragover = window.allowDrop;
+                    b.ondrop = window.drop;
+
+                    const dayContainer = dayContainers[breakData.day - 1];
+                    const breakStartMinutes = parseTimeToMinutes(breakData.startTime);
+                    let insertReferenceNode = null;
+
+                    for (const child of Array.from(dayContainer.children)) {
+                        if (child.dataset && child.dataset.startTime) {
+                            const childStartMinutes = parseTimeToMinutes(child.dataset.startTime);
+                            if (breakStartMinutes < childStartMinutes) {
+                                insertReferenceNode = child;
+                                break;
+                            }
+                        }
+                    }
+
+                    dayContainer.insertBefore(b, insertReferenceNode);
+                    console.log(`✅ Break ${breakData.id} добавлен в день ${breakData.day}`);
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error("Ошибка при загрузке расписания:", error);
+        alert('Ошибка при загрузке расписания: ' + error.message);
     }
 };
 
@@ -402,6 +820,8 @@ window.openTab = function(tabId) {
     if (tabId === 'add-classroom-tab') setupScrollLoading('classroom-list', loadClassroomList);
     if (tabId === 'add-professor-tab') setupScrollLoading('professor-list', loadProfessorList);
     if (tabId === 'add-subject-tab') setupScrollLoading('subject-list', loadSubjectList);
+    // Удаляем эту строку, так как теперь это модальное окно
+    // if (tabId === 'add-schedule-tab') setupScrollLoading('schedule-list', loadScheduleList);
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -417,153 +837,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setupContextMenu();
 
+        // Загружаем список расписаний в select
+        await loadSchedules();
+
         // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
         openTab('lesson-tab-content'); 
 
-        const schedule = await getSchedule();
-        const breaks = await getBreaks(); // ДОБАВЛЕНО: Получаем перерывы из базы
-        const bufferContent = document.getElementById('buffer-content');
-        const dayContainers = document.querySelectorAll('.table-container tbody td .day'); 
+        // Загружаем расписание по умолчанию или последнее выбранное
+        const initialScheduleId = localStorage.getItem('currentScheduleId');
+        const initialFacultyId = localStorage.getItem('currentFacultyId');
 
-        // --- Добавление занятий ---
-        schedule.forEach(lessonData => {
-            // Проверка на корректность данных урока
-            if (!lessonData || !lessonData.id || !lessonData.subject || !lessonData.professor || !lessonData.classroom || !lessonData.startTime || !lessonData.endTime) {
-                console.warn('Skipping malformed lesson data:', lessonData);
-                return;
-            }
+        if (initialFacultyId) {
+            document.getElementById('facultySelect').value = initialFacultyId;
+            await loadSchedulesByFaculty();
 
-            let targetContainer;
-            if (lessonData.day === 0) {
-                targetContainer = bufferContent; // Целевой контейнер для буфера
-            } else if (lessonData.day >= 1 && lessonData.day <= dayContainers.length) {
-                targetContainer = dayContainers[lessonData.day - 1]; // Получаем div .day внутри td
-            } else {
-                console.warn(`Skipping lesson ${lessonData.id} due to invalid day value: ${lessonData.day}`);
-                return;
-            }
-            
-            if (!targetContainer) {
-                console.warn(`Target container not found for lesson ${lessonData.id}, day ${lessonData.day}`);
-                return;
-            }
-
-            const d = document.createElement('div');
-            d.className = 'lesson';
-            d.id = "lesson-" + lessonData.id;
-            d.draggable = true;
-            d.ondragstart = window.drag;
-            d.ondragover = window.allowDrop; 
-            d.ondrop = window.drop; 
-            d.dataset.day = lessonData.day;
-            d.dataset.subjectId = lessonData.subject.id;
-            d.dataset.professorId = lessonData.professor.id;
-            d.dataset.classroomId = lessonData.classroom.id;
-            d.dataset.startTime = lessonData.startTime;
-            d.dataset.endTime = lessonData.endTime;
-
-
-            const infoString = `${lessonData.professor.name}, ${lessonData.classroom.number}`;
-            const timeDisplay = `${lessonData.startTime}-${lessonData.endTime}`;
-
-            d.innerHTML = `
-                <div class="lesson-title">${lessonData.subject.name}</div>
-                <div>${infoString}</div>
-                <div class="lesson-time">${timeDisplay}</div>
-            `;
-            
-            // Логика сортировки при добавлении в день или буфер
-            const newLessonStartTime = parseTimeToMinutes(timeDisplay.split('-')[0]);
-            let insertReferenceNode = null;
-            
-            for (const child of Array.from(targetContainer.children)) {
-                if (child.classList.contains('lesson')) {
-                    const existingLessonTimeText = child.querySelector('.lesson-time')?.innerText;
-                    if (existingLessonTimeText) {
-                        const existingLessonTime = parseTimeToMinutes(existingLessonTimeText.split('-')[0]);
-                        if (newLessonStartTime < existingLessonTime) {
-                            insertReferenceNode = child;
-                            break;
-                        }
-                    }
+            // Ждем загрузки расписаний и затем выбираем нужное
+            setTimeout(() => {
+                if (initialScheduleId) {
+                    document.getElementById('scheduleSelect').value = initialScheduleId;
+                    window.loadSchedule();
                 }
-            }
-            targetContainer.insertBefore(d, insertReferenceNode);
+            }, 500);
+        }
 
-            // УДАЛЕНО: Не добавляем break-block при загрузке уроков
-            // if (lessonData.day !== 0 && document.getElementById('breakToggle')?.checked) {
-            //     if (!(d.nextSibling && d.nextSibling.classList.contains('break-block'))) {
-            //         const min = document.getElementById('breakDuration')?.value || 10;
-            //         const b = document.createElement('div');
-            //         b.className = 'break-block';
-            //         b.innerText = `ПЕРЕРЫВ: ${min} МИН.`;
-            //         targetContainer.insertBefore(b, d.nextSibling);
-            //     }
-            // }
-        });
+        // Обработчики для модального окна создания расписания
+        document.getElementById('create-schedule-submit').onclick = async () => {
+            await window.addSchedule();
+        };
+        document.getElementById('create-schedule-cancel').onclick = closeCreateScheduleModal;
 
-        // --- Добавление перерывов из базы ---
-        breaks.forEach(breakData => {
-            // ИСПРАВЛЕНО: day=0 это валидное значение (буфер), проверяем на null/undefined
-            if (!breakData || !breakData.id || breakData.day === null || breakData.day === undefined || !breakData.startTime || !breakData.endTime) {
-                console.warn('Skipping invalid break:', breakData);
-                return;
-            }
-
-            console.log(`📍 Загружаем break из БД: ID=${breakData.id}, day=${breakData.day}, time=${breakData.startTime}-${breakData.endTime}`);
-
-            if (breakData.day === 0) {
-                // Добавляем break-block в буфер
-                const b = document.createElement('div');
-                b.className = 'break-block';
-                b.id = "break-" + breakData.id;
-                b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                b.dataset.breakId = breakData.id;
-                b.dataset.day = breakData.day;
-                b.dataset.startTime = breakData.startTime;
-                b.dataset.endTime = breakData.endTime;
-                b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                b.draggable = true;
-                b.ondragstart = window.drag;
-                b.ondragover = window.allowDrop;
-                b.ondrop = window.drop;
-                bufferContent.appendChild(b);
-                console.log(`✅ Break ${breakData.id} добавлен в буфер`);
-            } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
-                // ИСПРАВЛЕНО: Добавляем break-block в день с сортировкой по времени, не ищем занятие
-                const b = document.createElement('div');
-                b.className = 'break-block';
-                b.id = "break-" + breakData.id;
-                b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                b.dataset.breakId = breakData.id;
-                b.dataset.day = breakData.day;
-                b.dataset.startTime = breakData.startTime;
-                b.dataset.endTime = breakData.endTime;
-                b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                b.draggable = true;
-                b.ondragstart = window.drag;
-                b.ondragover = window.allowDrop;
-                b.ondrop = window.drop;
-
-                // Находим правильную позицию для вставки (сортировка по времени)
-                const dayContainer = dayContainers[breakData.day - 1];
-                const breakStartMinutes = parseTimeToMinutes(breakData.startTime);
-                let insertReferenceNode = null;
-
-                for (const child of Array.from(dayContainer.children)) {
-                    if (child.dataset && child.dataset.startTime) {
-                        const childStartMinutes = parseTimeToMinutes(child.dataset.startTime);
-                        if (breakStartMinutes < childStartMinutes) {
-                            insertReferenceNode = child;
-                            break;
-                        }
-                    }
-                }
-
-                dayContainer.insertBefore(b, insertReferenceNode);
-                console.log(`✅ Break ${breakData.id} добавлен в день ${breakData.day}`);
-            }
-        });
+        // Обработчики для модального окна создания факультета
+        document.getElementById('create-faculty-submit').onclick = async () => {
+            await window.addFaculty();
+        };
+        document.getElementById('create-faculty-cancel').onclick = closeCreateFacultyModal;
 
     } catch (error) {
         console.error("Ошибка при загрузке приложения:", error);

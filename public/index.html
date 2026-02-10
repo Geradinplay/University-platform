@@ -25,6 +25,29 @@
 
     <!-- Содержимое вкладки "Создать занятие" -->
     <div id="lesson-tab-content" class="tab-content active">
+      <!-- Блок выбора расписания -->
+      <div class="schedule-select-block">
+        <h2>Выбрать расписание</h2>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <div class="form-group" style="flex-grow: 1;">
+            <label for="facultySelect">Факультет:</label>
+            <select id="facultySelect">
+              <option value="">-- Выберите факультет --</option>
+            </select>
+          </div>
+          <button onclick="window.openCreateFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Создать новый факультет</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="form-group" style="flex-grow: 1;">
+            <label for="scheduleSelect">Расписание:</label>
+            <select id="scheduleSelect">
+              <option value="">-- Выберите расписание --</option>
+            </select>
+          </div>
+          <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 20px;">Создать новое расписание</button>
+        </div>
+        <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
+      </div>
       <div class="form-flex-row">
         <!-- Блок создания занятия -->
         <div class="lesson-form-block">
@@ -209,6 +232,46 @@
 
   <div id="context-menu" class="context-menu">
     <button class="delete" onclick="window.deleteItem()">Удалить</button>
+  </div>
+
+  <!-- Модальное окно для создания факультета -->
+  <div id="create-faculty-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3>Создать новый факультет</h3>
+      <div class="form-group">
+        <label for="createFacultyName">Название факультета:</label>
+        <input type="text" id="createFacultyName" placeholder="Факультет Информатики">
+      </div>
+      <div class="form-group">
+        <label for="createFacultyShortName">Краткое название:</label>
+        <input type="text" id="createFacultyShortName" placeholder="ФИ" maxlength="10">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="create-faculty-submit" class="app-modal-close-btn">Создать</button>
+        <button id="create-faculty-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для создания расписания -->
+  <div id="create-schedule-modal" class="app-modal-overlay">
+    <div class="app-modal-content">
+      <h3 id="create-schedule-modal-title">Создать новое расписание</h3>
+      <div class="form-group">
+        <label for="createScheduleName">Название расписания:</label>
+        <input type="text" id="createScheduleName" placeholder="Расписание 1 группы">
+      </div>
+      <div class="form-group">
+        <label for="createScheduleFacultyId">Факультет:</label>
+        <select id="createScheduleFacultyId">
+          <option value="">-- Выберите факультет --</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="create-schedule-submit" class="app-modal-close-btn">Создать</button>
+        <button id="create-schedule-cancel" class="app-modal-close-btn">Отмена</button>
+      </div>
+    </div>
   </div>
 
   <!-- Модальное окно для сообщений -->

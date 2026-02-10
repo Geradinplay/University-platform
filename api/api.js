@@ -26,8 +26,13 @@ const getHeaders = () => {
  * Универсальная обертка для fetch запросов.
  * Реализует поддержку CORS, авторизацию и базовую обработку ошибок.
  */
-async function apiRequest(endpoint, options = {}) {
+export async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
+
+    // Логирование запроса
+    if (endpoint.includes('/schedule') || endpoint.includes('/break')) {
+        console.log(`🔗 API Request: ${url}`);
+    }
 
     const config = {
         ...options,
@@ -122,6 +127,14 @@ export const createClassroom = (data) => apiRequest('/api/classrooms', { method:
 export const updateClassroom = (id, data) => apiRequest(`/api/classrooms/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteClassroom = (id) => apiRequest(`/api/classrooms/${id}`, { method: 'DELETE' });
 
+// --- ФАКУЛЬТЕТЫ (Faculties) ---
+
+export const getFaculties = () => apiRequest('/api/faculties');
+export const getFacultyById = (id) => apiRequest(`/api/faculties/${id}`);
+export const createFaculty = (data) => apiRequest('/api/faculties', { method: 'POST', body: JSON.stringify(data) });
+export const updateFaculty = (id, data) => apiRequest(`/api/faculties/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteFaculty = (id) => apiRequest(`/api/faculties/${id}`, { method: 'DELETE' });
+
 // --- РАСПИСАНИЯ (Schedules) ---
 
 export const getSchedules = () => apiRequest('/api/schedules');
@@ -132,14 +145,14 @@ export const deleteSchedule = (id) => apiRequest(`/api/schedules/${id}`, { metho
 
 // --- РАСПИСАНИЕ И ЗАНЯТИЯ (Schedule/Lessons) ---
 
-export const getSchedule = () => apiRequest('/api/schedule');
+export const getLessonsByScheduleId = (scheduleId) => apiRequest(`/api/schedules/${scheduleId}/lessons`);
 export const createLesson = (data) => apiRequest('/api/schedule', { method: 'POST', body: JSON.stringify(data) });
 export const updateLessonDay = (id, data) => apiRequest(`/api/schedule/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteLesson = (id) => apiRequest(`/api/schedule/${id}`, { method: 'DELETE' });
 
 // --- ПЕРЕРЫВЫ (Breaks) ---
 
-export const getBreaks = () => apiRequest('/api/break');
+export const getBreaks = (scheduleId) => apiRequest(`/api/schedules/${scheduleId}/breaks`);
 export const createBreak = (data) => apiRequest('/api/break', { method: 'POST', body: JSON.stringify(data) });
 export const updateBreak = (id, data) => apiRequest(`/api/break/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteBreak = (id) => apiRequest(`/api/break/${id}`, { method: 'DELETE' });
