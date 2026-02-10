@@ -9,9 +9,10 @@
 </head>
 <body>
   <div class="container">
-    <!-- Кнопка выхода -->
-    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-      <button id="logout-btn" style="background:#dc3545;color:#fff;border:none;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;">
+    <!-- Правый верхний угол с надписью ADMIN и кнопкой выхода -->
+    <div class="admin-header">
+      <span class="admin-badge">ADMIN</span>
+      <button id="logout-btn" class="logout-btn">
         Выйти
       </button>
     </div>
@@ -47,9 +48,9 @@
               <option value="">-- Выберите расписание --</option>
             </select>
           </div>
-          <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 20px;">Создать новое расписание</button>
-          <button onclick="window.openEditScheduleModal()" style="white-space: nowrap; margin-top: 20px;">Обновить</button>
-          <button onclick="window.openDeleteScheduleModal()" style="white-space: nowrap; margin-top: 20px; background:#dc3545;">Удалить</button>
+          <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Создать новое расписание</button>
+          <button onclick="window.openEditScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Обновить</button>
+          <button onclick="window.openDeleteScheduleModal()" style="white-space: nowrap; margin-top: 10px; background:#dc3545;">Удалить</button>
         </div>
         <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
       </div>

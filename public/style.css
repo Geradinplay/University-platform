@@ -66,7 +66,7 @@ h2 {
 
 .tab-content {
   display: none; /* По умолчанию все вкладки скрыты */
-  padding: 0px;
+  padding: 0;
   border-radius: 8px;
 
   background-color: transparent; /* Сделать фон прозрачным */
@@ -369,7 +369,6 @@ td {
 
 /* Стили для модального окна */
 .app-modal-overlay {
-  display: none; /* По умолчанию скрыто */
   position: fixed;
   top: 0;
   left: 0;
@@ -495,7 +494,6 @@ td {
   font-size: 15px;
   font-weight: 600;
   transition: background-color 0.3s, transform 0.2s;
-  margin-top: auto;
 }
 
 .break-form-block .break-create-btn:hover {
@@ -648,4 +646,76 @@ td {
     height: 220px;
     max-width: 100%;
   }
+}
+
+/* --- Стиль для ADMIN-заголовка в правом верхнем углу --- */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 50px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+  height: 50px;
+}
+
+.admin-badge {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  padding: 25px 25px;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  animation: adminPulse 2s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  height: 26px;
+}
+
+@keyframes adminPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.02);
+  }
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  height: 38px;
+  white-space: nowrap;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
