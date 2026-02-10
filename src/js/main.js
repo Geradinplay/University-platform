@@ -773,51 +773,44 @@ window.loadSchedule = async function() {
         // --- Добавление перерывов из базы ---
         breaks.forEach(breakData => {
             if (!breakData || !breakData.id || !breakData.day || !breakData.startTime || !breakData.endTime) return;
+
+            let targetContainer;
             if (breakData.day === 0) {
-                // Добавляем break-block в буфер
-                const b = document.createElement('div');
-                b.className = 'break-block';
-                b.id = "break-" + breakData.id;
-                b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                b.dataset.breakId = breakData.id;
-                b.dataset.day = breakData.day;
-                b.dataset.startTime = breakData.startTime;
-                b.dataset.endTime = breakData.endTime;
-                b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                b.draggable = true;
-                b.ondragstart = window.drag;
-                b.ondragover = window.allowDrop;
-                b.ondrop = window.drop;
-                bufferContent.appendChild(b);
+                targetContainer = bufferContent;
             } else if (breakData.day >= 1 && breakData.day <= dayContainers.length) {
-                // Добавляем break-block в день
-                let lessonDiv = null;
-                for (const child of dayContainers[breakData.day - 1].children) {
-                    if (
-                        child.classList.contains('lesson') &&
-                        child.dataset.endTime === breakData.startTime
-                    ) {
-                        lessonDiv = child;
+                targetContainer = dayContainers[breakData.day - 1];
+            } else {
+                return;
+            }
+
+            const b = document.createElement('div');
+            b.className = 'break-block';
+            b.id = "break-" + breakData.id;
+            b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
+            b.dataset.breakId = breakData.id;
+            b.dataset.day = breakData.day;
+            b.dataset.startTime = breakData.startTime;
+            b.dataset.endTime = breakData.endTime;
+            b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
+            b.draggable = true;
+            b.ondragstart = window.drag;
+            b.ondragover = window.allowDrop;
+            b.ondrop = window.drop;
+
+            // Добавляем перерыв в порядке времени (независимо от занятий)
+            const breakStartTime = parseTimeToMinutes(breakData.startTime);
+            let insertReferenceNode = null;
+
+            for (const child of Array.from(targetContainer.children)) {
+                if (child.dataset.startTime) {
+                    const childStartTime = parseTimeToMinutes(child.dataset.startTime);
+                    if (breakStartTime < childStartTime) {
+                        insertReferenceNode = child;
                         break;
                     }
                 }
-                if (lessonDiv) {
-                    const b = document.createElement('div');
-                    b.className = 'break-block';
-                    b.id = "break-" + breakData.id;
-                    b.innerText = `ПЕРЕРЫВ: ${parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime)} МИН.`;
-                    b.dataset.breakId = breakData.id;
-                    b.dataset.day = breakData.day;
-                    b.dataset.startTime = breakData.startTime;
-                    b.dataset.endTime = breakData.endTime;
-                    b.dataset.duration = parseTimeToMinutes(breakData.endTime) - parseTimeToMinutes(breakData.startTime);
-                    b.draggable = true;
-                    b.ondragstart = window.drag;
-                    b.ondragover = window.allowDrop;
-                    b.ondrop = window.drop;
-                    dayContainers[breakData.day - 1].insertBefore(b, lessonDiv.nextSibling);
-                }
             }
+            targetContainer.insertBefore(b, insertReferenceNode);
         });
 
         console.log('✅ Расписание успешно загружено');
