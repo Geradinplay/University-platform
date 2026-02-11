@@ -632,14 +632,42 @@ async function loadSchedulesByFaculty() {
         const scheduleSelect = document.getElementById('scheduleSelect');
         if (!scheduleSelect) return;
 
-        // ✅ Загружаем все расписания, НЕ фильтруем по факультету
+        // Получаем выбранный факультет из select или из localStorage
+        const facultySelect = document.getElementById('facultySelect');
+        const selectedFacultyIdStr = (facultySelect && facultySelect.value) || localStorage.getItem('currentFacultyId') || '';
+        const selectedFacultyId = selectedFacultyIdStr ? Number(selectedFacultyIdStr) : null;
+
+        // Если факультет не выбран — очищаем расписания и выходим
+        if (!selectedFacultyId) {
+            scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
+            scheduleSelect.value = '';
+            // При очистке расписания также очистим доску и буфер
+            document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+            document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
+                dayContainer.innerHTML = '';
+            });
+            // Обработчик onchange оставляем — если позже выберут расписание, оно загрузится
+            scheduleSelect.onchange = () => {
+                if (scheduleSelect.value) {
+                    window.loadSchedule();
+                }
+            };
+            return;
+        }
+
+        // Загружаем все расписания
         const schedules = await getSchedules();
+
+        // Фильтруем по факультету
+        const filtered = Array.isArray(schedules)
+            ? schedules.filter(s => Number(s.facultyId) === selectedFacultyId)
+            : [];
 
         // Сохраняем текущий выбор, чтобы не сбрасывать
         const prevSelected = scheduleSelect.value;
 
         scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
-        schedules.forEach(schedule => {
+        filtered.forEach(schedule => {
             const option = document.createElement('option');
             option.value = schedule.id;
             const semesterText = schedule.semester ? `(Семестр ${schedule.semester})` : '';
@@ -648,12 +676,13 @@ async function loadSchedulesByFaculty() {
             scheduleSelect.appendChild(option);
         });
 
-        // ✅ Восстанавливаем предыдущий выбор, если он существует
-        if (prevSelected) {
+        // Восстанавливаем предыдущий выбор, если он существует и подходит текущему факультету
+        if (prevSelected && filtered.some(s => String(s.id) === String(prevSelected))) {
             scheduleSelect.value = prevSelected;
+        } else {
+            // Иначе сбрасываем выбор
+            scheduleSelect.value = '';
         }
-
-        // ⚠️ Не очищаем доску/буфер тут, чтобы «Занятость комнат» не пропадала при смене факультета
 
         // При выборе расписания загружаем его
         scheduleSelect.onchange = () => {
