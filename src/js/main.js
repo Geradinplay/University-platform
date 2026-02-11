@@ -629,44 +629,33 @@ async function loadFaculties() {
 
 async function loadSchedulesByFaculty() {
     try {
-        const facultyId = document.getElementById('facultySelect').value;
         const scheduleSelect = document.getElementById('scheduleSelect');
+        if (!scheduleSelect) return;
 
-        if (!facultyId) {
-            scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
-            scheduleSelect.value = '';
-            // Очищаем доску и буфер при сбросе факультета
-            document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
-            document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
-                dayContainer.innerHTML = '';
-            });
-            return;
-        }
-
+        // ✅ Загружаем все расписания, НЕ фильтруем по факультету
         const schedules = await getSchedules();
-        const filteredSchedules = schedules.filter(s => s.facultyId == facultyId);
+
+        // Сохраняем текущий выбор, чтобы не сбрасывать
+        const prevSelected = scheduleSelect.value;
 
         scheduleSelect.innerHTML = '<option value="">-- Выберите расписание --</option>';
-        filteredSchedules.forEach(schedule => {
+        schedules.forEach(schedule => {
             const option = document.createElement('option');
             option.value = schedule.id;
-            // Добавляем семестр в отображение с проверкой на null
-            const semesterText = schedule.semester ? `(Семестр ${schedule.semester})` : '(Семестр не указан)';
-            // Добавляем метку экзамена или распорядка
+            const semesterText = schedule.semester ? `(Семестр ${schedule.semester})` : '';
             const typeLabel = schedule.isExam ? '🔴 ЭКЗАМЕН' : '🔵 РАСПОРЯДОК';
-            option.textContent = `${typeLabel} - ${schedule.name} ${semesterText}`;
+            option.textContent = `${typeLabel} - ${schedule.name} ${semesterText}`.trim();
             scheduleSelect.appendChild(option);
         });
 
-        // Очищаем выбранное значение
-        scheduleSelect.value = '';
-        // Очищаем доску и буфер при смене факультета
-        document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
-        document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
-            dayContainer.innerHTML = '';
-        });
+        // ✅ Восстанавливаем предыдущий выбор, если он существует
+        if (prevSelected) {
+            scheduleSelect.value = prevSelected;
+        }
 
-        // Добавляем обработчик для автоматической загрузки при выборе расписания
+        // ⚠️ Не очищаем доску/буфер тут, чтобы «Занятость комнат» не пропадала при смене факультета
+
+        // При выборе расписания загружаем его
         scheduleSelect.onchange = () => {
             if (scheduleSelect.value) {
                 window.loadSchedule();
@@ -1594,13 +1583,20 @@ function openOccupancyDetailsModal(data) {
     }
 }
 
+// Функция загрузки/рендера занятости комнат с учётом семестра
 window.loadClassroomScheduleView = async function() {
     try {
         const head = document.getElementById('classroom-schedule-head');
         const body = document.getElementById('classroom-schedule-body');
         if (!head || !body) return;
 
-        // Заголовок таблицы: Аудитория + дни
+        const semesterSelect = document.getElementById('semesterSelect');
+        let selectedSemester = Number(localStorage.getItem('selectedSemester') || (semesterSelect?.value || 1));
+        if (semesterSelect && String(semesterSelect.value) !== String(selectedSemester)) {
+            semesterSelect.value = String(selectedSemester);
+        }
+        if (isNaN(selectedSemester) || selectedSemester < 1 || selectedSemester > 8) selectedSemester = 1;
+
         head.innerHTML = '';
         const trHead = document.createElement('tr');
         const thRoom = document.createElement('th'); thRoom.textContent = 'Аудитория'; trHead.appendChild(thRoom);
@@ -1609,82 +1605,51 @@ window.loadClassroomScheduleView = async function() {
         });
         head.appendChild(trHead);
 
-        // Словари
         const classrooms = await getClassrooms();
         const classMap = new Map(classrooms.map(c => [String(c.id), c.number]));
-        // ✅ Загружаем факультеты для отображения имен по facultyId
-        let facultyShortMap = new Map();
-        let facultyFullMap = new Map();
-        try {
-            const faculties = await getFaculties();
-            facultyShortMap = new Map(faculties.map(f => [String(f.id), (f.shortName || f.name || String(f.id))]));
-            facultyFullMap = new Map(faculties.map(f => [String(f.id), (f.name || f.shortName || String(f.id))]));
-        } catch (e) {
-            console.warn('Не удалось загрузить список факультетов для отображения', e);
-        }
+        const faculties = await getFaculties?.();
+        const facultyShortMap = new Map((faculties || []).map(f => [String(f.id), (f.shortName || f.name || '')]));
+        const facultyFullMap = new Map((faculties || []).map(f => [String(f.id), (f.name || f.shortName || '')]));
 
-        // Определяем выбранное расписание для доп. данных (факультет/семестр/тип)
-        let scheduleMeta = { name: null, faculty: null, semester: null, isExam: false };
-        const scheduleId = document.getElementById('scheduleSelect')?.value;
-        if (scheduleId) {
+        // ✅ Загружаем ВСЕ расписания и фильтруем по выбранному семестру
+        const allSchedules = await getSchedules();
+        const schedulesOfSemester = (allSchedules || []).filter(s => Number(s.semester) === selectedSemester);
+
+        // ✅ Загружаем занятия из всех расписаний выбранного семестра
+        let lessons = [];
+        for (const sch of schedulesOfSemester) {
             try {
-                const sch = await getScheduleById(scheduleId);
-                scheduleMeta = {
-                    name: sch?.name || null,
-                    faculty: (sch?.faculty?.shortName || sch?.faculty?.name || facultyShortMap.get(String(sch?.facultyId)) || null),
-                    facultyFull: (sch?.faculty?.name || sch?.faculty?.shortName || facultyFullMap.get(String(sch?.facultyId)) || null),
-                    semester: sch?.semester ?? null,
-                    isExam: !!sch?.isExam,
-                };
-            } catch (e) { console.warn('Не удалось получить метаданные расписания', e); }
+                const schLessons = await getLessonsByScheduleId(sch.id);
+                // Проставляем _schedule для модалки и метаданных
+                schLessons.forEach(l => { l._schedule = sch; });
+                lessons = lessons.concat(schLessons);
+            } catch (e) {
+                // Игнорируем ошибки отдельных расписаний
+            }
         }
 
-        // Собираем занятия из всех НЕэкзаменационных расписаний выбранного факультета (или всех, если не выбрано)
-        const schedules = await getSchedules();
-        const filtered = schedules.filter(s => !s.isExam);
-        const lessonsArrays = await Promise.all(
-            filtered.map(async (s) => {
-                try {
-                    const lessons = await getLessonsByScheduleId(s.id);
-                    return lessons.map(l => ({...l, _schedule: s}));
-                } catch (e) {
-                    console.warn('Не удалось загрузить занятия для расписания', s.id, e);
-                    return [];
-                }
-            })
-        );
-        const allLessons = lessonsArrays.flat();
-
-        // 3) Группируем по (день, аудитория)
-        const lessonsByDayAndRoom = new Map(); // key: `${day}|${roomId}` -> [{start,end,subject,prof,_schedule}]
+        const lessonsByDayAndRoom = new Map();
         const roomIdsInUse = new Set();
-
-        allLessons.forEach(l => {
+        (lessons || []).forEach(l => {
+            const sch = l._schedule; // всегда есть, выше проставили
             const day = Number(l.day);
-            if (!day || day < 1 || day > 5) return; // пропускаем буфер и некорректные
-            const roomId = String(l.classroom?.id ?? '');
+            const roomId = String(l.classroom?.id || l.classroomId || '');
             if (!roomId) return;
-
+            const subject = l.subject?.name || '';
             const professor = l.professor || l.user || {};
-            const subject = l.subject?.name || 'Занятие';
             const prof = professor.name || professor.username || '';
-            const start = l.startTime;
-            const end = l.endTime;
-            if (!start || !end) return;
-
+            const start = l.startTime; const end = l.endTime; if (!start || !end) return;
             const key = `${day}|${roomId}`;
             if (!lessonsByDayAndRoom.has(key)) lessonsByDayAndRoom.set(key, []);
-            lessonsByDayAndRoom.get(key).push({ start, end, subject, prof, _schedule: l._schedule });
+            lessonsByDayAndRoom.get(key).push({ start, end, subject, prof, _schedule: sch });
             roomIdsInUse.add(roomId);
         });
 
         body.innerHTML = '';
         if (roomIdsInUse.size === 0 && classrooms.length === 0) {
             const tr = document.createElement('tr');
-            const td = document.createElement('td');
-            td.colSpan = 6; td.style.textAlign = 'center'; td.style.color = '#6a829a';
-            td.textContent = 'Нет данных для отображения';
-            tr.appendChild(td); body.appendChild(tr); return;
+            const td = document.createElement('td'); td.colSpan = 6; td.style.textAlign = 'center'; td.style.color = '#6a829a';
+            td.textContent = 'Нет данных для отображения'; tr.appendChild(td); body.appendChild(tr); return;
         }
 
         const roomIds = (classrooms.length > 0 ? classrooms.map(c => String(c.id)) : Array.from(roomIdsInUse));
@@ -1694,36 +1659,18 @@ window.loadClassroomScheduleView = async function() {
         });
 
         function markConflicts(items) {
-            const list = items.map(it => ({
-                ...it,
-                startMin: parseTimeToMinutes(it.start),
-                endMin: parseTimeToMinutes(it.end),
-                conflict: false
-            })).sort((a,b) => a.startMin - b.startMin);
-            for (let i = 0; i < list.length; i++) {
-                for (let j = i + 1; j < list.length; j++) {
-                    if (list[j].startMin >= list[i].endMin) break;
-                    list[i].conflict = true; list[j].conflict = true;
-                }
-            }
-            return list;
+            return items.map(it => ({ ...it, conflict: items.some(other => other !== it && !(other.end <= it.start || other.start >= it.end)) }));
         }
 
         for (const roomId of sortedRoomIds) {
             const tr = document.createElement('tr');
-            const tdRoom = document.createElement('td');
-            tdRoom.style.fontWeight = '600';
-            const roomLabel = `Каб. ${classMap.get(roomId) || roomId}`;
-            tdRoom.textContent = roomLabel;
-            tr.appendChild(tdRoom);
+            const tdRoom = document.createElement('td'); tdRoom.style.fontWeight = '600';
+            const roomLabel = `Каб. ${classMap.get(roomId) || roomId}`; tdRoom.textContent = roomLabel; tr.appendChild(tdRoom);
 
             for (let day = 1; day <= 5; day++) {
-                const td = document.createElement('td');
-                td.style.verticalAlign = 'top';
-                td.style.padding = '8px';
+                const td = document.createElement('td'); td.style.verticalAlign = 'top'; td.style.padding = '8px';
                 const key = `${day}|${roomId}`;
                 const rawItems = lessonsByDayAndRoom.get(key) || [];
-
                 if (rawItems.length === 0) {
                     td.innerHTML = '<div style="color:#9aa9b5; font-size:12px;">Свободно</div>';
                 } else {
@@ -1732,22 +1679,20 @@ window.loadClassroomScheduleView = async function() {
                         const div = document.createElement('div');
                         div.className = 'occupancy-item ' + (it.conflict ? 'conflict' : 'normal');
                         div.innerHTML = `<div class="time"><strong>${it.start}-${it.end}</strong></div>
-                                         <div class="meta">${it.subject}${it.prof ? `, <span class="prof">${it.prof}</span>` : ''}</div>`;
-                        // Привязываем данные для модалки
+                                         <div class="meta">${it.subject}${it.prof ? `, <span class=\"prof\">${it.prof}</span>` : ''}</div>`;
                         div.dataset.day = String(day);
                         div.dataset.roomLabel = roomLabel;
                         div.dataset.time = `${it.start}-${it.end}`;
                         div.dataset.subject = it.subject || '';
                         div.dataset.prof = it.prof || '';
                         const sch = it._schedule || {};
-                        const facultyShort = (sch?.faculty?.shortName || sch?.faculty?.name || facultyShortMap.get(String(sch?.facultyId)) || scheduleMeta.faculty || '');
-                        const facultyFull = (sch?.faculty?.name || sch?.faculty?.shortName || facultyFullMap.get(String(sch?.facultyId)) || scheduleMeta.facultyFull || '');
+                        const facultyShort = (sch?.faculty?.shortName || sch?.faculty?.name || facultyShortMap.get(String(sch?.facultyId)) || '');
+                        const facultyFull = (sch?.faculty?.name || sch?.faculty?.shortName || facultyFullMap.get(String(sch?.facultyId)) || '');
                         div.dataset.faculty = facultyShort;
                         div.dataset.facultyFull = facultyFull;
-                        div.dataset.scheduleName = sch?.name || scheduleMeta.name || '';
-                        div.dataset.semester = (sch?.semester != null ? String(sch.semester) : (scheduleMeta.semester != null ? String(scheduleMeta.semester) : ''));
-                        div.dataset.isExam = String(!!(sch?.isExam ?? scheduleMeta.isExam));
-                        // Клик по элементу -> модалка
+                        div.dataset.scheduleName = sch?.name || '';
+                        div.dataset.semester = (sch?.semester != null ? String(sch.semester) : '');
+                        div.dataset.isExam = String(!!sch?.isExam);
                         div.addEventListener('click', () => {
                             openOccupancyDetailsModal({
                                 roomLabel: div.dataset.roomLabel,
@@ -1758,7 +1703,7 @@ window.loadClassroomScheduleView = async function() {
                                 faculty: div.dataset.faculty,
                                 facultyFull: div.dataset.facultyFull,
                                 scheduleName: div.dataset.scheduleName,
-                                semester: div.dataset.semester ? Number(div.dataset.semester) : null,
+                                semester: Number(div.dataset.semester),
                                 isExam: div.dataset.isExam === 'true',
                             });
                         });
@@ -1769,7 +1714,16 @@ window.loadClassroomScheduleView = async function() {
             }
             body.appendChild(tr);
         }
-        console.log('✅ Таблица занятости комнат обновлена (агрегация по всем неэкзаменационным расписаниям)');
+
+        // Подписка на изменение селектора семестра
+        if (semesterSelect && !semesterSelect._boundChange) {
+            semesterSelect.addEventListener('change', () => {
+                const val = Number(semesterSelect.value);
+                localStorage.setItem('selectedSemester', String(val));
+                window.loadClassroomScheduleView();
+            });
+            semesterSelect._boundChange = true;
+        }
     } catch (e) {
         console.error('❌ Ошибка в loadClassroomScheduleView:', e);
     }

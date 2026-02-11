@@ -296,16 +296,25 @@
       </div>
     </div>
 
-    <!-- Расписание занятости комнат -->
-    <div id="classroom-view" class="schedule-view-container" style="display: none;">
+    <!-- ВИД: Занятость комнат с фильтром по семестру -->
+    <div id="classroom-view" class="schedule-view-container" style="display:none;">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+        <label for="semesterSelect" style="color:#334e68; font-weight:600;">Семестр:</label>
+        <select id="semesterSelect" style="padding:6px 10px; border:1px solid #cdd5df; border-radius:6px; min-width:100px;">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+      </div>
       <div class="table-container">
-        <table id="classroom-schedule-table">
-          <thead id="classroom-schedule-head">
-          <!-- Будет заполнено динамически -->
-          </thead>
-          <tbody id="classroom-schedule-body">
-          <!-- Будет заполнено динамически -->
-          </tbody>
+        <table>
+          <thead id="classroom-schedule-head"><!-- будет заполнено скриптом --></thead>
+          <tbody id="classroom-schedule-body"><!-- будет заполнено скриптом --></tbody>
         </table>
       </div>
     </div>
