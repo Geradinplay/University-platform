@@ -850,32 +850,52 @@ select option {
   border-color: rgba(248, 113, 113, 0.4);
 }
 
-/* --- Красные блоки занятости преподавателя --- */
-.professor-busy {
-  background-color: #ffcccc; /* Очень светлый красный */
-  border-left: 4px solid #dc3545; /* Красная граница */
-  color: #c82333; /* Темный красный текст */
-  padding: 8px;
-  margin-bottom: 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: bold;
-  box-shadow: 0 1px 5px rgba(220, 53, 69, 0.2);
-  pointer-events: none; /* Не реагирует на клики */
-  z-index: 10; /* Выше чем обычные карточки */
-  position: relative;
+/* --- Красные/Желтые блоки занятости преподавателя по наличию коллизий --- */
+.professor-busy.normal {
+  background-color: #fff8e1; /* Светло-жёлтый фон при отсутствии конфликта */
+  border-left: 4px solid #ffab40; /* Оранжевый левый акцент */
+  color: #795548; /* Более нейтральный тёмно-коричневый текст */
+  box-shadow: 0 1px 5px rgba(255, 171, 64, 0.2);
+  padding: 12px 14px;           /* увеличенные внутренние отступы */
+  margin-bottom: 10px;          /* чуть больше расстояние между блоками */
+  line-height: 1.35;            /* более комфортная высота строк */
+  border-radius: 6px;           /* скругление, чтобы визуально «дышало» */
+}
+.professor-busy.conflict {
+  background-color: #ffe5e5; /* Светло-красный фон при конфликте */
+  border-left: 4px solid #dc3545; /* Красный левый акцент */
+  color: #c82333; /* Тёмно-красный текст */
+  padding: 12px 14px;           /* увеличенные внутренние отступы */
+  margin-bottom: 10px;          /* чуть больше расстояние между блоками */
+  line-height: 1.35;            /* более комфортная высота строк */
+  border-radius: 6px;           /* скругление, чтобы визуально «дышало» */
+}
+.professor-busy .lesson-time {
+  margin-bottom: 4px;           /* небольшой отступ снизу */
+}
+.professor-busy .lesson-title {
+  margin: 2px 0 4px;            /* отступы вокруг названия предмета */
+}
+.professor-busy div:last-child {
+  margin-top: 2px;              /* небольшой отступ сверху перед кабинетом */
 }
 
-.professor-busy:hover {
-  background-color: #ffaaaa; /* Чуть темнее при наведении */
+/* Плашки занятости комнат — делаем чуть свободнее */
+.occupancy-item {
+  padding: 12px 14px;           /* увеличенные внутренние отступы */
+  line-height: 1.35;            /* комфортная высота строк */
+}
+.occupancy-item .time {
+  margin-bottom: 6px;           /* больше воздуха между временем и метаданными */
 }
 
-/* --- Красные блоки занятости аудитории --- */
+/* Блоки занятости аудиторий (красные) — немного свободнее */
 .classroom-busy {
   background-color: #ffcccc; /* Очень светлый красный */
   border-left: 4px solid #dc3545; /* Красная граница */
   color: #c82333; /* Темный красный текст */
-  padding: 8px;
+  padding: 10px 12px;           /* увеличенные внутренние отступы */
+  line-height: 1.35;            /* комфортная высота строк */
   margin-bottom: 8px;
   border-radius: 6px;
   font-size: 12px;
@@ -916,6 +936,6 @@ select option {
 }
 .occupancy-item.conflict {
   background: #ffe5e5;           /* красный фон при конфликте */
+  border: 1px solid #ffc2c2;     /* базовая рамка по всем сторонам */
   border-left: 4px solid #dc3545; /* акцент слева */
-  border-color: #ffc2c2;
 }

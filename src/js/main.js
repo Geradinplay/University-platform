@@ -178,6 +178,15 @@ window.addClassroom = async function() {
         // Обновить select
         const classrooms = await getClassrooms();
         populateSelect('classroomSelect', classrooms, 'number');
+
+        // ДОБАВЛЕНО: Обновить вид "Занятость комнат" после добавления аудитории
+        if (typeof window.loadClassroomScheduleView === 'function') {
+            try {
+                await window.loadClassroomScheduleView();
+            } catch (e) {
+                console.warn('Не удалось обновить занятость комнат после добавления аудитории:', e);
+            }
+        }
     } catch (err) {
         alert('Ошибка при добавлении аудитории');
     }
@@ -906,11 +915,10 @@ window.loadProfessorSchedule = async function() {
 
         // Для каждого расписания ищем занятия этого преподавателя
         let allLessons = [];
-
         for (const schedule of schedules) {
             try {
                 const lessons = await getLessonsByScheduleId(schedule.id);
-                allLessons = allLessons.concat(lessons.filter(l => l.user.id == professorId));
+                allLessons = allLessons.concat(lessons.filter(l => String(l.user?.id || l.professor?.id) === String(professorId)));
             } catch (err) {
                 // Игнорируем ошибки при загрузке отдельных расписаний
             }
@@ -926,75 +934,82 @@ window.loadProfessorSchedule = async function() {
             return;
         }
 
-        // Отображаем занятия красными блоками
-        const dayContainers = document.querySelectorAll('.day');
-
+        // Группируем занятия по дням и сортируем по времени начала
+        const lessonsByDay = new Map();
         allLessons.forEach(lesson => {
-            const dayIndex = lesson.day - 1;
-            if (dayIndex >= 0 && dayIndex < dayContainers.length) {
-                const dayContainer = dayContainers[dayIndex];
+            const dayIndex = Number(lesson.day) - 1;
+            if (dayIndex < 0) return;
+            const startMin = parseTimeToMinutes(lesson.startTime);
+            const endMin = parseTimeToMinutes(lesson.endTime);
+            if (!lessonsByDay.has(dayIndex)) lessonsByDay.set(dayIndex, []);
+            lessonsByDay.get(dayIndex).push({ lesson, startMin, endMin });
+        });
+        for (const [dayIndex, arr] of lessonsByDay.entries()) {
+            arr.sort((a, b) => a.startMin - b.startMin);
+        }
 
-                // ✅ НОВОЕ: Проверяем не является ли это уже существующим блоком на расписании
-                // Ищем обычный синий блок этого же занятия несколькими методами
-                let existingLessonBlock = document.getElementById(`lesson-${lesson.id}`);
-                if (!existingLessonBlock) {
-                    existingLessonBlock = dayContainer.querySelector(`[data-lesson-id="${lesson.id}"]`);
-                }
-                if (!existingLessonBlock) {
-                    existingLessonBlock = dayContainer.querySelector(`.lesson[id*="lesson-"][data-lesson-id="${lesson.id}"]`);
-                }
+        // Функция определения конфликтов внутри одного дня
+        const markConflicts = (items) => {
+            return items.map((it, idx) => {
+                const conflict = items.some((other, j) => j !== idx && !(other.endMin <= it.startMin || other.startMin >= it.endMin));
+                return { ...it, conflict };
+            });
+        };
 
+        // Отображаем отсортированные занятия, отмечая конфликты
+        const dayContainers = document.querySelectorAll('.day');
+        for (const [dayIndex, itemsRaw] of lessonsByDay.entries()) {
+            const items = markConflicts(itemsRaw);
+            const dayContainer = dayContainers[dayIndex];
+            if (!dayContainer) continue;
+
+            items.forEach(({ lesson, startMin, endMin, conflict }) => {
+                // Проверяем, не существует ли уже обычного синего блока этого занятия в текущем расписании
+                let existingLessonBlock = document.getElementById(`lesson-${lesson.id}`) || dayContainer.querySelector(`[data-lesson-id="${lesson.id}"]`);
                 if (existingLessonBlock) {
-                    // Это уже существующее занятие из текущего расписания - пропускаем
-                    console.log(`⏭️  Пропускаю блок ${lesson.id} - уже отображается на расписании`);
+                    // Это занятие уже отображается как обычное — пропускаем
                     return;
                 }
 
-                // Создаем красный блок занятости
                 const busyBlock = document.createElement('div');
-                busyBlock.className = 'professor-busy';
+                busyBlock.className = 'professor-busy ' + (conflict ? 'conflict' : 'normal');
                 busyBlock.dataset.professorId = professorId;
-                busyBlock.style.backgroundColor = '#ffcccc'; // Очень светлый красный
-                busyBlock.style.borderLeft = '4px solid #dc3545'; // Красная граница
-                busyBlock.style.color = '#c82333'; // Темный красный текст
-                busyBlock.style.padding = '8px';
-                busyBlock.style.marginBottom = '8px';
-                busyBlock.style.borderRadius = '6px';
-                busyBlock.style.fontSize = '12px';
-                busyBlock.style.fontWeight = 'bold';
-                busyBlock.style.boxShadow = '0 1px 5px rgba(220, 53, 69, 0.2)';
-                busyBlock.style.pointerEvents = 'none'; // Не реагирует на клики
+                busyBlock.style.pointerEvents = 'none';
 
                 busyBlock.innerHTML = `
-                    <div style="font-weight: bold; color: #dc3545;">🔴 ЗАНЯТО</div>
-                    <div style="margin-top: 4px; font-size: 11px;">
-                        ${lesson.startTime} - ${lesson.endTime}<br>
-                        ${lesson.subject.name}<br>
-                        Каб. ${lesson.classroom.number}
-                    </div>
+                    <div class="lesson-time">${lesson.startTime} - ${lesson.endTime}</div>
+                    <div class="lesson-title">${lesson.subject?.name || ''}</div>
+                    <div>${lesson.classroom?.number ? ('Каб. ' + lesson.classroom.number) : ''}</div>
                 `;
 
-                dayContainer.appendChild(busyBlock);
-            }
-        });
+                // Вставляем блок по позиции времени среди уже добавленных busy-блоков
+                let insertRef = null;
+                for (const child of Array.from(dayContainer.children)) {
+                    // Сравниваем по времени начала, если это professor-busy
+                    if (child.classList && child.classList.contains('professor-busy')) {
+                        const timeText = child.querySelector('.lesson-time')?.innerText || '';
+                        const childStart = timeText.split('-')[0]?.trim();
+                        if (childStart) {
+                            const childStartMin = parseTimeToMinutes(childStart);
+                            if (startMin < childStartMin) { insertRef = child; break; }
+                        }
+                    } else if (child.dataset && child.dataset.startTime) {
+                        // Сравниваем с обычными занятиями для корректного порядка
+                        const childStartMin = parseTimeToMinutes(child.dataset.startTime);
+                        if (startMin < childStartMin) { insertRef = child; break; }
+                    }
+                }
+                dayContainer.insertBefore(busyBlock, insertRef);
+            });
+        }
 
-        console.log('✅ Расписание преподавателя успешно отображено');
-        alert(`✅ Отображены ${allLessons.length} занятий преподавателя`);
+        console.log('✅ Расписание преподавателя успешно отображено (отсортировано по времени)');
+        alert('✅ Занятость преподавателя отображена и отсортирована по времени');
 
     } catch (error) {
         console.error('❌ Ошибка при загрузке расписания преподавателя:', error);
         alert('Ошибка при загрузке расписания: ' + error.message);
     }
-};
-
-/**
- * Очищает красные блоки занятости преподавателя
- */
-window.clearProfessorSchedule = function() {
-    console.log('🧹 Очищаю красные блоки занятости преподавателя');
-    document.querySelectorAll('.professor-busy').forEach(block => block.remove());
-    document.getElementById('professorSelect').value = '';
-    console.log('✅ Блоки очищены');
 };
 
 async function loadScheduleList(page = 0, pageSize = 50) {
