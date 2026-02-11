@@ -79,6 +79,21 @@
         </div>
         <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
       </div>
+
+      <!-- НОВОЕ: Блок просмотра расписания преподавателя -->
+      <div class="schedule-select-block" style="margin-top: 20px; border-top: 2px solid #a3b8cd; padding-top: 20px;">
+        <h2>Расписание преподавателя</h2>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="form-group" style="flex-grow: 1;">
+            <label for="professorSelect">Выберите преподавателя:</label>
+            <select id="professorSelect">
+              <option value="">-- Выберите преподавателя --</option>
+            </select>
+          </div>
+          <button onclick="window.loadProfessorSchedule()" style="white-space: nowrap; margin-top: 20px;">Показать расписание</button>
+          <button onclick="window.clearProfessorSchedule()" style="white-space: nowrap; margin-top: 20px; background:#6c757d;">Очистить</button>
+        </div>
+      </div>
       <div class="form-flex-row">
         <!-- Блок создания занятия -->
         <div class="lesson-form-block">

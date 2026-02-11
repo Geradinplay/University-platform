@@ -828,3 +828,23 @@ select option {
   background: rgba(248, 113, 113, 0.2);
   border-color: rgba(248, 113, 113, 0.4);
 }
+
+/* --- Красные блоки занятости преподавателя --- */
+.professor-busy {
+  background-color: #ffcccc; /* Очень светлый красный */
+  border-left: 4px solid #dc3545; /* Красная граница */
+  color: #c82333; /* Темный красный текст */
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 1px 5px rgba(220, 53, 69, 0.2);
+  pointer-events: none; /* Не реагирует на клики */
+  z-index: 10; /* Выше чем обычные карточки */
+  position: relative;
+}
+
+.professor-busy:hover {
+  background-color: #ffaaaa; /* Чуть темнее при наведении */
+}

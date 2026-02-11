@@ -35,6 +35,9 @@ window.loadUsersList = function(page = 0) {
     return loadUsersList(page);
 };
 
+// ✅ НОВОЕ: Функции для работы с расписанием преподавателя
+window.loadProfessorsList = loadProfessorsList;
+
 // ===== ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ ДАННЫХ =====
 window.professorsList = [];
 
@@ -741,6 +744,7 @@ window.loadSchedule = async function() {
             const d = document.createElement('div');
             d.className = 'lesson';
             d.id = "lesson-" + lessonData.id;
+            d.dataset.lessonId = lessonData.id;  // ✅ НОВОЕ: для проверки дубликатов
             d.draggable = true;
             d.ondragstart = window.drag;
             d.ondragover = window.allowDrop;
@@ -840,6 +844,140 @@ async function loadSchedules() {
         document.getElementById('facultySelect').value = selectedFacultyId;
     }
 }
+
+// ===== НОВЫЕ ФУНКЦИИ ДЛЯ РАСПИСАНИЯ ПРЕПОДАВАТЕЛЯ =====
+
+/**
+ * Загружает список всех преподавателей в select
+ */
+async function loadProfessorsList() {
+    try {
+        const professorSelect = document.getElementById('professorSelect');
+        if (!professorSelect) return;
+
+        const professors = await getProfessors();
+        professorSelect.innerHTML = '<option value="">-- Выберите преподавателя --</option>';
+
+        professors.forEach(prof => {
+            const option = document.createElement('option');
+            option.value = prof.id;
+            option.textContent = prof.name || prof.username;
+            professorSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке списка преподавателей:', error);
+    }
+}
+
+/**
+ * Отображает расписание выбранного преподавателя красными блоками
+ */
+window.loadProfessorSchedule = async function() {
+    try {
+        const professorId = document.getElementById('professorSelect').value;
+
+        if (!professorId) {
+            alert('Пожалуйста, выберите преподавателя');
+            return;
+        }
+
+        console.log('📚 Загружаю расписание преподавателя с ID:', professorId);
+
+        // Получаем все расписания
+        const schedules = await getSchedules();
+
+        // Для каждого расписания ищем занятия этого преподавателя
+        let allLessons = [];
+
+        for (const schedule of schedules) {
+            try {
+                const lessons = await getLessonsByScheduleId(schedule.id);
+                allLessons = allLessons.concat(lessons.filter(l => l.user.id == professorId));
+            } catch (err) {
+                // Игнорируем ошибки при загрузке отдельных расписаний
+            }
+        }
+
+        console.log('🎓 Найдено занятий преподавателя:', allLessons.length);
+
+        // Очищаем старые блоки преподавателя
+        document.querySelectorAll('.professor-busy').forEach(block => block.remove());
+
+        if (allLessons.length === 0) {
+            alert('У этого преподавателя нет занятий в расписаниях');
+            return;
+        }
+
+        // Отображаем занятия красными блоками
+        const dayContainers = document.querySelectorAll('.day');
+
+        allLessons.forEach(lesson => {
+            const dayIndex = lesson.day - 1;
+            if (dayIndex >= 0 && dayIndex < dayContainers.length) {
+                const dayContainer = dayContainers[dayIndex];
+
+                // ✅ НОВОЕ: Проверяем не является ли это уже существующим блоком на расписании
+                // Ищем обычный синий блок этого же занятия несколькими методами
+                let existingLessonBlock = document.getElementById(`lesson-${lesson.id}`);
+                if (!existingLessonBlock) {
+                    existingLessonBlock = dayContainer.querySelector(`[data-lesson-id="${lesson.id}"]`);
+                }
+                if (!existingLessonBlock) {
+                    existingLessonBlock = dayContainer.querySelector(`.lesson[id*="lesson-"][data-lesson-id="${lesson.id}"]`);
+                }
+
+                if (existingLessonBlock) {
+                    // Это уже существующее занятие из текущего расписания - пропускаем
+                    console.log(`⏭️  Пропускаю блок ${lesson.id} - уже отображается на расписании`);
+                    return;
+                }
+
+                // Создаем красный блок занятости
+                const busyBlock = document.createElement('div');
+                busyBlock.className = 'professor-busy';
+                busyBlock.dataset.professorId = professorId;
+                busyBlock.style.backgroundColor = '#ffcccc'; // Очень светлый красный
+                busyBlock.style.borderLeft = '4px solid #dc3545'; // Красная граница
+                busyBlock.style.color = '#c82333'; // Темный красный текст
+                busyBlock.style.padding = '8px';
+                busyBlock.style.marginBottom = '8px';
+                busyBlock.style.borderRadius = '6px';
+                busyBlock.style.fontSize = '12px';
+                busyBlock.style.fontWeight = 'bold';
+                busyBlock.style.boxShadow = '0 1px 5px rgba(220, 53, 69, 0.2)';
+                busyBlock.style.pointerEvents = 'none'; // Не реагирует на клики
+
+                busyBlock.innerHTML = `
+                    <div style="font-weight: bold; color: #dc3545;">🔴 ЗАНЯТО</div>
+                    <div style="margin-top: 4px; font-size: 11px;">
+                        ${lesson.startTime} - ${lesson.endTime}<br>
+                        ${lesson.subject.name}<br>
+                        Каб. ${lesson.classroom.number}
+                    </div>
+                `;
+
+                dayContainer.appendChild(busyBlock);
+            }
+        });
+
+        console.log('✅ Расписание преподавателя успешно отображено');
+        alert(`✅ Отображены ${allLessons.length} занятий преподавателя`);
+
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке расписания преподавателя:', error);
+        alert('Ошибка при загрузке расписания: ' + error.message);
+    }
+};
+
+/**
+ * Очищает красные блоки занятости преподавателя
+ */
+window.clearProfessorSchedule = function() {
+    console.log('🧹 Очищаю красные блоки занятости преподавателя');
+    document.querySelectorAll('.professor-busy').forEach(block => block.remove());
+    document.getElementById('professorSelect').value = '';
+    console.log('✅ Блоки очищены');
+};
 
 async function loadScheduleList(page = 0, pageSize = 50) {
     const schedules = await getSchedules();
@@ -1320,6 +1458,10 @@ async function initializeApp() {
 
     // Загружаем список расписаний в select
     await loadSchedules();
+
+    // ✅ НОВОЕ: Загружаем список преподавателей для выбора расписания преподавателя
+    await loadProfessorsList();
+    console.log('👨‍🏫 Список преподавателей загруже��');
 
     // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
     window.openTab('lesson-tab-content');
