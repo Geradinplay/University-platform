@@ -1579,6 +1579,7 @@ function openOccupancyDetailsModal(data) {
         setText('occ-subject', data.subject || '—');
         setText('occ-prof', data.prof || '—');
         setText('occ-faculty', data.faculty || '—');
+        setText('occ-faculty-full', data.facultyFull || '—');
         setText('occ-schedule-name', data.scheduleName || '—');
         setText('occ-semester', (data.semester != null ? String(data.semester) : '—'));
         setText('occ-type', data.isExam ? 'Экзамены' : 'Учебное');
@@ -1611,6 +1612,16 @@ window.loadClassroomScheduleView = async function() {
         // Словари
         const classrooms = await getClassrooms();
         const classMap = new Map(classrooms.map(c => [String(c.id), c.number]));
+        // ✅ Загружаем факультеты для отображения имен по facultyId
+        let facultyShortMap = new Map();
+        let facultyFullMap = new Map();
+        try {
+            const faculties = await getFaculties();
+            facultyShortMap = new Map(faculties.map(f => [String(f.id), (f.shortName || f.name || String(f.id))]));
+            facultyFullMap = new Map(faculties.map(f => [String(f.id), (f.name || f.shortName || String(f.id))]));
+        } catch (e) {
+            console.warn('Не удалось загрузить список факультетов для отображения', e);
+        }
 
         // Определяем выбранное расписание для доп. данных (факультет/семестр/тип)
         let scheduleMeta = { name: null, faculty: null, semester: null, isExam: false };
@@ -1620,7 +1631,8 @@ window.loadClassroomScheduleView = async function() {
                 const sch = await getScheduleById(scheduleId);
                 scheduleMeta = {
                     name: sch?.name || null,
-                    faculty: sch?.faculty?.shortName || sch?.faculty?.name || null,
+                    faculty: (sch?.faculty?.shortName || sch?.faculty?.name || facultyShortMap.get(String(sch?.facultyId)) || null),
+                    facultyFull: (sch?.faculty?.name || sch?.faculty?.shortName || facultyFullMap.get(String(sch?.facultyId)) || null),
                     semester: sch?.semester ?? null,
                     isExam: !!sch?.isExam,
                 };
@@ -1728,7 +1740,10 @@ window.loadClassroomScheduleView = async function() {
                         div.dataset.subject = it.subject || '';
                         div.dataset.prof = it.prof || '';
                         const sch = it._schedule || {};
-                        div.dataset.faculty = sch?.faculty?.shortName || sch?.faculty?.name || scheduleMeta.faculty || '';
+                        const facultyShort = (sch?.faculty?.shortName || sch?.faculty?.name || facultyShortMap.get(String(sch?.facultyId)) || scheduleMeta.faculty || '');
+                        const facultyFull = (sch?.faculty?.name || sch?.faculty?.shortName || facultyFullMap.get(String(sch?.facultyId)) || scheduleMeta.facultyFull || '');
+                        div.dataset.faculty = facultyShort;
+                        div.dataset.facultyFull = facultyFull;
                         div.dataset.scheduleName = sch?.name || scheduleMeta.name || '';
                         div.dataset.semester = (sch?.semester != null ? String(sch.semester) : (scheduleMeta.semester != null ? String(scheduleMeta.semester) : ''));
                         div.dataset.isExam = String(!!(sch?.isExam ?? scheduleMeta.isExam));
@@ -1741,6 +1756,7 @@ window.loadClassroomScheduleView = async function() {
                                 subject: div.dataset.subject,
                                 prof: div.dataset.prof,
                                 faculty: div.dataset.faculty,
+                                facultyFull: div.dataset.facultyFull,
                                 scheduleName: div.dataset.scheduleName,
                                 semester: div.dataset.semester ? Number(div.dataset.semester) : null,
                                 isExam: div.dataset.isExam === 'true',
