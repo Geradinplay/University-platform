@@ -1518,6 +1518,10 @@ async function initializeApp() {
         await window.deleteFaculty();
     };
     document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
+
+    // Обработчик для переключения вида расписания
+    document.getElementById('schedule-tab-btn').onclick = () => switchScheduleView('schedule');
+    document.getElementById('classroom-tab-btn').onclick = () => switchScheduleView('classroom');
 }
 
 // ===== Переключение вида расписания (по дням / занятость комнат) =====
@@ -1559,43 +1563,78 @@ function switchScheduleView(view) {
 window.switchScheduleView = switchScheduleView;
 
 // ===== ВИД "Занятость комнат" =====
+function getDayName(day) {
+    const map = {1:'Понедельник',2:'Вторник',3:'Среда',4:'Четверг',5:'Пятница'};
+    return map[day] || String(day);
+}
+
+function openOccupancyDetailsModal(data) {
+    try {
+        const overlay = document.getElementById('occupancy-details-modal');
+        if (!overlay) return;
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || ''; };
+        setText('occ-room', data.roomLabel || '—');
+        setText('occ-day', data.dayLabel || '—');
+        setText('occ-time', data.time || '—');
+        setText('occ-subject', data.subject || '—');
+        setText('occ-prof', data.prof || '—');
+        setText('occ-faculty', data.faculty || '—');
+        setText('occ-schedule-name', data.scheduleName || '—');
+        setText('occ-semester', (data.semester != null ? String(data.semester) : '—'));
+        setText('occ-type', data.isExam ? 'Экзамены' : 'Учебное');
+
+        overlay.classList.add('active');
+        const closeBtn = document.getElementById('occupancy-details-close');
+        if (closeBtn) closeBtn.onclick = () => overlay.classList.remove('active');
+        // Закрытие по клику вне контента
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('active'); };
+    } catch (e) {
+        console.error('Ошибка открытия occupancy-details-modal', e);
+    }
+}
+
 window.loadClassroomScheduleView = async function() {
     try {
         const head = document.getElementById('classroom-schedule-head');
         const body = document.getElementById('classroom-schedule-body');
-        if (!head || !body) {
-            console.warn('loadClassroomScheduleView: элементы таблицы не найдены');
-            return;
-        }
+        if (!head || !body) return;
 
-        // Строим заголовок: Кабинет + Пн..Пт
+        // Заголовок таблицы: Аудитория + дни
         head.innerHTML = '';
         const trHead = document.createElement('tr');
-        const thRoom = document.createElement('th');
-        thRoom.textContent = 'Кабинет';
-        trHead.appendChild(thRoom);
-        const dayTitles = ['Понедельник','Вторник','Среда','Четверг','Пятница'];
-        for (const title of dayTitles) {
-            const th = document.createElement('th');
-            th.textContent = title;
-            trHead.appendChild(th);
-        }
+        const thRoom = document.createElement('th'); thRoom.textContent = 'Аудитория'; trHead.appendChild(thRoom);
+        ['Понедельник','Вторник','Среда','Четверг','Пятница'].forEach(d => {
+            const th = document.createElement('th'); th.textContent = d; trHead.appendChild(th);
+        });
         head.appendChild(trHead);
 
-        // Загрузим справочник аудиторий для отображения номеров
-        const classrooms = await getClassrooms().catch(() => []);
-        const classMap = new Map();
-        classrooms.forEach(c => classMap.set(String(c.id), c.number));
+        // Словари
+        const classrooms = await getClassrooms();
+        const classMap = new Map(classrooms.map(c => [String(c.id), c.number]));
 
-        // 1) Загружаем все расписания и фильтруем isExam = false
-        const allSchedules = await getSchedules();
-        const regularSchedules = (allSchedules || []).filter(s => !s.isExam);
+        // Определяем выбранное расписание для доп. данных (факультет/семестр/тип)
+        let scheduleMeta = { name: null, faculty: null, semester: null, isExam: false };
+        const scheduleId = document.getElementById('scheduleSelect')?.value;
+        if (scheduleId) {
+            try {
+                const sch = await getScheduleById(scheduleId);
+                scheduleMeta = {
+                    name: sch?.name || null,
+                    faculty: sch?.faculty?.shortName || sch?.faculty?.name || null,
+                    semester: sch?.semester ?? null,
+                    isExam: !!sch?.isExam,
+                };
+            } catch (e) { console.warn('Не удалось получить метаданные расписания', e); }
+        }
 
-        // 2) Загружаем занятия для всех регулярных расписаний параллельно
+        // Собираем занятия из всех НЕэкзаменационных расписаний выбранного факультета (или всех, если не выбрано)
+        const schedules = await getSchedules();
+        const filtered = schedules.filter(s => !s.isExam);
         const lessonsArrays = await Promise.all(
-            regularSchedules.map(async s => {
+            filtered.map(async (s) => {
                 try {
-                    return await getLessonsByScheduleId(s.id);
+                    const lessons = await getLessonsByScheduleId(s.id);
+                    return lessons.map(l => ({...l, _schedule: s}));
                 } catch (e) {
                     console.warn('Не удалось загрузить занятия для расписания', s.id, e);
                     return [];
@@ -1605,7 +1644,7 @@ window.loadClassroomScheduleView = async function() {
         const allLessons = lessonsArrays.flat();
 
         // 3) Группируем по (день, аудитория)
-        const lessonsByDayAndRoom = new Map(); // key: `${day}|${roomId}` -> [{start,end,subject,prof}]
+        const lessonsByDayAndRoom = new Map(); // key: `${day}|${roomId}` -> [{start,end,subject,prof,_schedule}]
         const roomIdsInUse = new Set();
 
         allLessons.forEach(l => {
@@ -1623,50 +1662,36 @@ window.loadClassroomScheduleView = async function() {
 
             const key = `${day}|${roomId}`;
             if (!lessonsByDayAndRoom.has(key)) lessonsByDayAndRoom.set(key, []);
-            lessonsByDayAndRoom.get(key).push({ start, end, subject, prof });
+            lessonsByDayAndRoom.get(key).push({ start, end, subject, prof, _schedule: l._schedule });
             roomIdsInUse.add(roomId);
         });
 
-        // 4) Строим тело таблицы по всем аудиториям (если справочник пуст — по найденным id)
         body.innerHTML = '';
         if (roomIdsInUse.size === 0 && classrooms.length === 0) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
-            td.colSpan = 6;
-            td.style.textAlign = 'center';
-            td.style.color = '#6a829a';
+            td.colSpan = 6; td.style.textAlign = 'center'; td.style.color = '#6a829a';
             td.textContent = 'Нет данных для отображения';
-            tr.appendChild(td);
-            body.appendChild(tr);
-            return;
+            tr.appendChild(td); body.appendChild(tr); return;
         }
 
-        const roomIds = (classrooms.length > 0
-            ? classrooms.map(c => String(c.id))
-            : Array.from(roomIdsInUse));
-
-        // Отсортируем по номеру кабинета, если известен, иначе по id
+        const roomIds = (classrooms.length > 0 ? classrooms.map(c => String(c.id)) : Array.from(roomIdsInUse));
         const sortedRoomIds = roomIds.sort((a,b) => {
             const na = classMap.get(a) || a; const nb = classMap.get(b) || b;
             return String(na).localeCompare(String(nb), 'ru', { numeric: true });
         });
 
-        // Вспомогательная функция: проставить флаг conflict элементам внутри одного дня/комнаты
         function markConflicts(items) {
-            // items: [{start,end,subject,prof}] -> добавим startMin,endMin,conflict
             const list = items.map(it => ({
                 ...it,
                 startMin: parseTimeToMinutes(it.start),
                 endMin: parseTimeToMinutes(it.end),
                 conflict: false
             })).sort((a,b) => a.startMin - b.startMin);
-
             for (let i = 0; i < list.length; i++) {
                 for (let j = i + 1; j < list.length; j++) {
-                    if (list[j].startMin >= list[i].endMin) break; // дальше пересечений не будет
-                    // Пересечение
-                    list[i].conflict = true;
-                    list[j].conflict = true;
+                    if (list[j].startMin >= list[i].endMin) break;
+                    list[i].conflict = true; list[j].conflict = true;
                 }
             }
             return list;
@@ -1676,7 +1701,8 @@ window.loadClassroomScheduleView = async function() {
             const tr = document.createElement('tr');
             const tdRoom = document.createElement('td');
             tdRoom.style.fontWeight = '600';
-            tdRoom.textContent = `Каб. ${classMap.get(roomId) || roomId}`;
+            const roomLabel = `Каб. ${classMap.get(roomId) || roomId}`;
+            tdRoom.textContent = roomLabel;
             tr.appendChild(tdRoom);
 
             for (let day = 1; day <= 5; day++) {
@@ -1695,6 +1721,31 @@ window.loadClassroomScheduleView = async function() {
                         div.className = 'occupancy-item ' + (it.conflict ? 'conflict' : 'normal');
                         div.innerHTML = `<div class="time"><strong>${it.start}-${it.end}</strong></div>
                                          <div class="meta">${it.subject}${it.prof ? `, <span class="prof">${it.prof}</span>` : ''}</div>`;
+                        // Привязываем данные для модалки
+                        div.dataset.day = String(day);
+                        div.dataset.roomLabel = roomLabel;
+                        div.dataset.time = `${it.start}-${it.end}`;
+                        div.dataset.subject = it.subject || '';
+                        div.dataset.prof = it.prof || '';
+                        const sch = it._schedule || {};
+                        div.dataset.faculty = sch?.faculty?.shortName || sch?.faculty?.name || scheduleMeta.faculty || '';
+                        div.dataset.scheduleName = sch?.name || scheduleMeta.name || '';
+                        div.dataset.semester = (sch?.semester != null ? String(sch.semester) : (scheduleMeta.semester != null ? String(scheduleMeta.semester) : ''));
+                        div.dataset.isExam = String(!!(sch?.isExam ?? scheduleMeta.isExam));
+                        // Клик по элементу -> модалка
+                        div.addEventListener('click', () => {
+                            openOccupancyDetailsModal({
+                                roomLabel: div.dataset.roomLabel,
+                                dayLabel: getDayName(Number(div.dataset.day)),
+                                time: div.dataset.time,
+                                subject: div.dataset.subject,
+                                prof: div.dataset.prof,
+                                faculty: div.dataset.faculty,
+                                scheduleName: div.dataset.scheduleName,
+                                semester: div.dataset.semester ? Number(div.dataset.semester) : null,
+                                isExam: div.dataset.isExam === 'true',
+                            });
+                        });
                         td.appendChild(div);
                     });
                 }
