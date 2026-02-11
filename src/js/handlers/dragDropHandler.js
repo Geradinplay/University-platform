@@ -224,7 +224,7 @@ async function handleBreakCreation(lessonEl, container, day, lessonId) {
         const b = document.createElement('div');
         b.className = 'break-block';
         b.id = "break-" + res.id;
-        b.innerText = `ПЕРЕРЫВ: ${duration} МИН.`;
+        b.innerText = `ПЕРЕРЫВ: ${duration} МИН. (${res.startTime}-${res.endTime})`;
 
         Object.assign(b.dataset, {
             breakId: res.id, day, startTime: res.startTime, endTime: res.endTime, duration: res.duration
