@@ -719,3 +719,79 @@ td {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
+
+/* --- Индикатор соединения с сервером --- */
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 8px 15px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.connection-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse-disconnected 1.5s ease-in-out infinite;
+}
+
+.connection-dot.connected {
+  background-color: #4ade80;
+  animation: pulse-connected 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.connection-dot.disconnected {
+  background-color: #f87171;
+  animation: pulse-disconnected 1.5s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+}
+
+.connection-text {
+  white-space: nowrap;
+}
+
+@keyframes pulse-connected {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes pulse-disconnected {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+.connection-indicator.waiting {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.connection-indicator.connected {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.connection-indicator.disconnected {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.4);
+}

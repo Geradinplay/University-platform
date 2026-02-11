@@ -2,6 +2,7 @@ import { populateSelect } from './utils/selectPopulator.js';
 import { allowDrop, drag, drop } from './handlers/dragDropHandler.js';
 import { addNewLesson } from './handlers/lessonFormHandler.js';
 import { setupContextMenu, deleteItem } from './handlers/contextMenuHandler.js';
+import { connectionManager } from './utils/connectionManager.js';
 import {
     getProfessors,
     getUsers,
@@ -1262,87 +1263,95 @@ window.openTab = function(tabId) {
     // if (tabId === 'add-schedule-tab') setupScrollLoading('schedule-list', loadScheduleList);
 };
 
+// Функция инициализации приложения
+async function initializeApp() {
+    console.log('🔄 Инициализирую приложение...');
+
+    const subjects = await getSubjects();
+    console.log('📚 Получены предметы:', subjects?.length || 0);
+    populateSelect('subjectSelect', subjects, 'name');
+
+    // ✅ ОБНОВЛЯЕМ КЕШ ПРОФЕССОРОВ - это загружает ВСЕ профессоров
+    await window.updateProfessorsCache();
+    console.log('👨‍🏫 Кеш профессоров обновлен:', window.professorsList.length);
+    populateSelect('teacherSelect', window.professorsList, 'name');
+    console.log('✅ teacherSelect заполнен профессорами:', window.professorsList.length);
+
+    const classrooms = await getClassrooms();
+    console.log('🏫 Получены аудитории:', classrooms?.length || 0);
+    populateSelect('classroomSelect', classrooms, 'number');
+
+    setupContextMenu();
+
+    // Загружаем список расписаний в select
+    await loadSchedules();
+
+    // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
+    window.openTab('lesson-tab-content');
+
+    // Загружаем расписание по умолчанию или последнее выбранное
+    const initialScheduleId = localStorage.getItem('currentScheduleId');
+    const initialFacultyId = localStorage.getItem('currentFacultyId');
+
+    if (initialFacultyId) {
+        document.getElementById('facultySelect').value = initialFacultyId;
+        await loadSchedulesByFaculty();
+
+        // Ждем загрузки расписаний и затем выбираем нужное
+        setTimeout(() => {
+            if (initialScheduleId) {
+                document.getElementById('scheduleSelect').value = initialScheduleId;
+                window.loadSchedule();
+            }
+        }, 500);
+    }
+
+    // Обработчики для модального окна создания расписания
+    document.getElementById('create-schedule-submit').onclick = async () => {
+        await window.addSchedule();
+    };
+    document.getElementById('create-schedule-cancel').onclick = closeCreateScheduleModal;
+
+    // Обработчики для модального окна редактирования расписания
+    document.getElementById('edit-schedule-submit').onclick = async () => {
+        await window.editSchedule();
+    };
+    document.getElementById('edit-schedule-cancel').onclick = closeEditScheduleModal;
+
+    // Обработчики для модального окна удаления расписания
+    document.getElementById('delete-schedule-confirm').onclick = async () => {
+        await window.deleteSchedule();
+    };
+    document.getElementById('delete-schedule-cancel').onclick = closeDeleteScheduleModal;
+
+    // Обработчики для модального окна создания факультета
+    document.getElementById('create-faculty-submit').onclick = async () => {
+        await window.addFaculty();
+    };
+    document.getElementById('create-faculty-cancel').onclick = closeCreateFacultyModal;
+
+    // Обработчики для модального окна редактирования факультета
+    document.getElementById('edit-faculty-submit').onclick = async () => {
+        await window.editFaculty();
+    };
+    document.getElementById('edit-faculty-cancel').onclick = closeEditFacultyModal;
+
+    // Обработчики для модального окна удаления факультета
+    document.getElementById('delete-faculty-confirm').onclick = async () => {
+        await window.deleteFaculty();
+    };
+    document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        console.log('🔄 DOMContentLoaded: Загружаю данные...');
-
-        const subjects = await getSubjects();
-        console.log('📚 Получены предметы:', subjects?.length || 0);
-        populateSelect('subjectSelect', subjects, 'name');
-
-        // ✅ ОБНОВЛЯЕМ КЕШ ПРОФЕССОРОВ - это загружает ВСЕ профессоров
-        await window.updateProfessorsCache();
-        console.log('👨‍🏫 Кеш профессоров обновлен:', window.professorsList.length);
-        populateSelect('teacherSelect', window.professorsList, 'name');
-        console.log('✅ teacherSelect заполнен профессорами:', window.professorsList.length);
-
-        const classrooms = await getClassrooms();
-        console.log('🏫 Получены аудитории:', classrooms?.length || 0);
-        populateSelect('classroomSelect', classrooms, 'number');
-
-        setupContextMenu();
-
-        // Загружаем список расписаний в select
-        await loadSchedules();
-
-        // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
-        window.openTab('lesson-tab-content');
-
-        // Загружаем расписание по умолчанию или последнее выбранное
-        const initialScheduleId = localStorage.getItem('currentScheduleId');
-        const initialFacultyId = localStorage.getItem('currentFacultyId');
-
-        if (initialFacultyId) {
-            document.getElementById('facultySelect').value = initialFacultyId;
-            await loadSchedulesByFaculty();
-
-            // Ждем загрузки расписаний и затем выбираем нужное
-            setTimeout(() => {
-                if (initialScheduleId) {
-                    document.getElementById('scheduleSelect').value = initialScheduleId;
-                    window.loadSchedule();
-                }
-            }, 500);
-        }
-
-        // Обработчики для модального окна создания расписания
-        document.getElementById('create-schedule-submit').onclick = async () => {
-            await window.addSchedule();
-        };
-        document.getElementById('create-schedule-cancel').onclick = closeCreateScheduleModal;
-
-        // Обработчики для модального окна редактирования расписания
-        document.getElementById('edit-schedule-submit').onclick = async () => {
-            await window.editSchedule();
-        };
-        document.getElementById('edit-schedule-cancel').onclick = closeEditScheduleModal;
-
-        // Обработчики для модального окна удаления расписания
-        document.getElementById('delete-schedule-confirm').onclick = async () => {
-            await window.deleteSchedule();
-        };
-        document.getElementById('delete-schedule-cancel').onclick = closeDeleteScheduleModal;
-
-        // Обработчики для модального окна создания факультета
-        document.getElementById('create-faculty-submit').onclick = async () => {
-            await window.addFaculty();
-        };
-        document.getElementById('create-faculty-cancel').onclick = closeCreateFacultyModal;
-
-        // Обработчики для модального окна редактирования факультета
-        document.getElementById('edit-faculty-submit').onclick = async () => {
-            await window.editFaculty();
-        };
-        document.getElementById('edit-faculty-cancel').onclick = closeEditFacultyModal;
-
-        // Обработчики для модального окна удаления факультета
-        document.getElementById('delete-faculty-confirm').onclick = async () => {
-            await window.deleteFaculty();
-        };
-        document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
-
+        console.log('🔄 DOMContentLoaded: Запускаю ConnectionManager...');
+        // Используем ConnectionManager для управления подключением
+        await connectionManager.initialize(initializeApp);
     } catch (error) {
-        console.error("Ошибка при загрузке приложения:", error);
+        console.error("❌ Критическая ошибка при загрузке приложения:", error);
+        // Даже при критической ошибке устанавливаем обработчики переподключения
+        connectionManager.setupReconnectionCheck(initializeApp);
     }
 });
 

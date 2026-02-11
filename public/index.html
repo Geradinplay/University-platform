@@ -32,6 +32,11 @@
     <!-- Правый верхний угол с надписью ADMIN и кнопкой выхода -->
     <div class="admin-header">
       <span class="admin-badge">ADMIN</span>
+      <!-- Индикатор соединения с сервером -->
+      <div id="connection-status" class="connection-indicator" title="Статус соединения с сервером">
+        <span class="connection-dot disconnected"></span>
+        <span class="connection-text">Подключение...</span>
+      </div>
       <button id="logout-btn" class="logout-btn">
         Выйти
       </button>
