@@ -290,6 +290,7 @@ window.addSchedule = async function() {
     const name = document.getElementById('createScheduleName').value.trim();
     const facultyId = parseInt(document.getElementById('createScheduleFacultyId').value);
     let semester = parseInt(document.getElementById('createScheduleSemester').value);
+    const isExam = document.getElementById('createScheduleIsExam').checked;
 
     if (!name) {
         alert('Введите название расписания!');
@@ -309,7 +310,7 @@ window.addSchedule = async function() {
         // Сохраняем текущий факультет ПЕРЕД загрузкой
         const currentFacultyId = document.getElementById('facultySelect').value;
 
-        await createSchedule({ name, facultyId, semester });
+        await createSchedule({ name, facultyId, semester, isExam });
         alert('Расписание добавлено!');
         await loadSchedules(); // Перезагрузить список расписаний
 
@@ -323,6 +324,7 @@ window.addSchedule = async function() {
         document.getElementById('createScheduleName').value = '';
         document.getElementById('createScheduleFacultyId').value = '';
         document.getElementById('createScheduleSemester').value = '';
+        document.getElementById('createScheduleIsExam').checked = false;
         closeCreateScheduleModal(); // Закрыть модальное окно после создания
     } catch (err) {
         alert('Ошибка при добавлении расписания');
@@ -352,6 +354,8 @@ function closeCreateScheduleModal() {
     document.getElementById('create-schedule-modal').classList.remove('active');
     document.getElementById('createScheduleName').value = '';
     document.getElementById('createScheduleFacultyId').value = '';
+    document.getElementById('createScheduleSemester').value = '';
+    document.getElementById('createScheduleIsExam').checked = false;
 }
 
 // Функции для управления модальным окном обновления расписания
@@ -374,6 +378,7 @@ window.openEditScheduleModal = async function() {
         // Заполняем форму
         document.getElementById('editScheduleName').value = schedule.name || scheduleName;
         document.getElementById('editScheduleSemester').value = schedule.semester || '';
+        document.getElementById('editScheduleIsExam').checked = schedule.isExam || false;
 
         // Заполняем список факультетов
         const facultySelect = document.getElementById('facultySelect');
@@ -403,6 +408,7 @@ function closeEditScheduleModal() {
     document.getElementById('edit-schedule-modal').classList.remove('active');
     document.getElementById('editScheduleName').value = '';
     document.getElementById('editScheduleFacultyId').value = '';
+    document.getElementById('editScheduleIsExam').checked = false;
 }
 
 // Функции для управления модальным окном удаления расписания
@@ -485,6 +491,7 @@ window.editSchedule = async function() {
     const name = document.getElementById('editScheduleName').value.trim();
     const facultyId = parseInt(document.getElementById('editScheduleFacultyId').value);
     let semester = parseInt(document.getElementById('editScheduleSemester').value);
+    const isExam = document.getElementById('editScheduleIsExam').checked;
 
     if (!scheduleId) {
         alert('Выберите расписание!');
@@ -505,7 +512,7 @@ window.editSchedule = async function() {
     }
 
     try {
-        await updateSchedule(scheduleId, { name, facultyId, semester });
+        await updateSchedule(scheduleId, { name, facultyId, semester, isExam });
         alert('Расписание обновлено!');
         await loadSchedules();
         closeEditScheduleModal();
@@ -642,7 +649,9 @@ async function loadSchedulesByFaculty() {
             option.value = schedule.id;
             // Добавляем семестр в отображение с проверкой на null
             const semesterText = schedule.semester ? `(Семестр ${schedule.semester})` : '(Семестр не указан)';
-            option.textContent = `${schedule.name} ${semesterText}`;
+            // Добавляем метку экзамена или распорядка
+            const typeLabel = schedule.isExam ? '🔴 ЭКЗАМЕН' : '🔵 РАСПОРЯДОК';
+            option.textContent = `${typeLabel} - ${schedule.name} ${semesterText}`;
             scheduleSelect.appendChild(option);
         });
 
@@ -842,9 +851,33 @@ async function loadScheduleList(page = 0, pageSize = 50) {
         const div = document.createElement('div');
         div.className = 'scroll-list-item';
 
+        // Создаем контейнер для метки и имени
+        const labelAndName = document.createElement('span');
+        labelAndName.style.display = 'flex';
+        labelAndName.style.alignItems = 'center';
+        labelAndName.style.gap = '8px';
+        labelAndName.style.flex = '1';
+
+        // Добавляем метку типа расписания
+        const typeLabel = document.createElement('span');
+        if (s.isExam) {
+            typeLabel.textContent = '🔴 ЭКЗАМЕН';
+            typeLabel.style.color = '#dc3545';
+            typeLabel.style.fontWeight = 'bold';
+            typeLabel.style.fontSize = '12px';
+        } else {
+            typeLabel.textContent = '🔵 РАСПОРЯДОК';
+            typeLabel.style.color = '#5b9bd5';
+            typeLabel.style.fontWeight = 'bold';
+            typeLabel.style.fontSize = '12px';
+        }
+        labelAndName.appendChild(typeLabel);
+
         const nameSpan = document.createElement('span');
         nameSpan.textContent = s.name;
         nameSpan.style.cursor = 'pointer';
+        nameSpan.style.flex = '1';
+
         nameSpan.onclick = () => {
             const input = document.createElement('input');
             input.type = 'text';
@@ -853,22 +886,24 @@ async function loadScheduleList(page = 0, pageSize = 50) {
             input.onkeydown = async (e) => {
                 if (e.key === 'Enter') {
                     try {
-                        await updateSchedule(s.id, { name: input.value, facultyId: s.facultyId });
+                        await updateSchedule(s.id, { name: input.value, facultyId: s.facultyId, semester: s.semester, isExam: s.isExam });
                         nameSpan.textContent = input.value;
-                        div.replaceChild(nameSpan, input);
+                        labelAndName.replaceChild(nameSpan, input);
                         loadSchedules(); // Обновить список выбора расписаний
                     } catch (err) {
                         alert('Ошибка при обновлении расписания');
                     }
                 }
                 if (e.key === 'Escape') {
-                    div.replaceChild(nameSpan, input);
+                    labelAndName.replaceChild(nameSpan, input);
                 }
             };
-            input.onblur = () => div.replaceChild(nameSpan, input);
-            div.replaceChild(input, nameSpan);
+            input.onblur = () => labelAndName.replaceChild(nameSpan, input);
+            labelAndName.replaceChild(input, nameSpan);
             input.focus();
         };
+
+        labelAndName.appendChild(nameSpan);
 
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
@@ -885,7 +920,7 @@ async function loadScheduleList(page = 0, pageSize = 50) {
             }
         };
 
-        div.appendChild(nameSpan);
+        div.appendChild(labelAndName);
         div.appendChild(delBtn);
         container.appendChild(div);
     });

@@ -610,6 +610,39 @@ td {
   background: #4a8ac2;
 }
 
+/* --- Стили для визуального отличия типов расписания --- */
+
+/* Для элементов с меткой ЭКЗАМЕН (красный) */
+.scroll-list-item:has(span:first-child) {
+  transition: background-color 0.3s ease;
+}
+
+/* Hover эффект для элементов списка расписаний */
+.scroll-list-item {
+  border-radius: 4px;
+  padding: 10px 8px;
+  margin-bottom: 4px;
+}
+
+.scroll-list-item:hover {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+/* Специальный стиль для select элемента - опции с экзаменами */
+select option {
+  padding: 4px 8px;
+}
+
+/* Поддержка для стилизации через data-атрибуты или классы */
+.schedule-exam {
+  color: #dc3545;
+}
+
+.schedule-normal {
+  color: #5b9bd5;
+}
+
 /* Кастомный скроллбар для списков */
 .scroll-list,
 .scroll-list-window {
