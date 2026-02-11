@@ -6,7 +6,8 @@
 
 import { checkCollision } from '../utils/collisionDetector.js';
 import { parseTimeToMinutes } from '../utils/utils.js';
-import { updateLessonDay, createBreak, deleteBreak, updateBreak } from '../../../api/api.js';
+import { updateLessonDay, createBreak, updateBreak } from '../../../api/api.js';
+import { showModal, showConflictConfirmationModal } from '../modal.js'; // Импортируем showModal и showConflictConfirmationModal
 
 let draggedElement = null;
 
@@ -103,7 +104,7 @@ export async function drop(ev) {
 
             // Проверка стандартных коллизий времени
             if (!allowCollision && checkCollision(timeStr, targetContainer, el.id)) {
-                alert("Ошибка! В это время уже есть другое заняти��.");
+                showModal("Ошибка перетаскивания", "В это время уже есть другое занятие.");
                 return;
             }
 
@@ -121,10 +122,10 @@ export async function drop(ev) {
 
                 // Получаем все занятия в целевом контейнере
                 const dayLessons = targetContainer.querySelectorAll('.lesson');
-                let hasConflict = false;
+                let conflictMessages = [];
 
                 dayLessons.forEach(otherLesson => {
-                    if (otherLesson === el || hasConflict) return; // Пропускаем самого себя и если уже найден конфликт
+                    if (otherLesson === el) return; // Пропускаем самого себя
 
                     const otherTimeStr = otherLesson.querySelector('.lesson-time').innerText;
                     const [otherStartStr, otherEndStr] = otherTimeStr.split('-');
@@ -135,54 +136,76 @@ export async function drop(ev) {
                     const hasTimeConflict = !(endMin <= otherStartMin || startMin >= otherEndMin);
 
                     if (hasTimeConflict) {
-                        if (checkClassroomBusy && lessonClassroomId == otherLesson.dataset.classroomId) {
+                        if (checkClassroomBusy && lessonClassroomId === otherLesson.dataset.classroomId) {
                             const classroomNumber = otherLesson.textContent.match(/\d+/)?.[0] || 'неизвестного';
-                            alert(`❌ Кабинет ${classroomNumber} уже занят в это время (${otherTimeStr})`);
-                            hasConflict = true;
-                            return;
+                            conflictMessages.push(`❌ Кабинет ${classroomNumber} уже занят в это время (${otherTimeStr})`);
                         }
 
-                        if (checkProfessorBusy && lessonProfessorId == otherLesson.dataset.professorId) {
+                        if (checkProfessorBusy && lessonProfessorId === otherLesson.dataset.professorId) {
                             const professorName = otherLesson.textContent.split(',')[0] || 'неизвестного преподавателя';
-                            alert(`❌ Преподаватель ${professorName} уже занят в это время (${otherTimeStr})`);
-                            hasConflict = true;
-                            return;
+                            conflictMessages.push(`❌ Преподаватель ${professorName} уже занят в это время (${otherTimeStr})`);
                         }
                     }
                 });
 
-                if (hasConflict) return;
+                if (conflictMessages.length > 0) {
+                    // Если есть конфликты, показываем модальное окно подтверждения
+                    showConflictConfirmationModal(
+                        conflictMessages.join('<br>'),
+                        async () => {
+                            // Пользователь подтвердил, продолжаем добавление
+                            await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
+                        },
+                        () => {
+                            // Пользователь отменил, ничего не делаем
+                            console.log("Перетаскивание отменено из-за конфликта.");
+                        }
+                    );
+                    return; // Прерываем выполнение drop, так как модальное окно обрабатывает дальнейшие действия
+                }
             }
         }
 
-        // Перемещение в UI
-        if (isToBuffer) {
-            // Перемещаем только занятие в буфер
-            // Перерыв остается на месте (независим от занятия!)
-            targetContainer.appendChild(el);
-            el.dataset.breakCreated = '';
-            console.log(`📦 Lesson ${lessonId} перемещен в буфер`);
-        } else {
-            sortAndInsert(targetContainer, el);
-            console.log(`📅 Lesson ${lessonId} перемещен в день ${newDay}`);
+        // Если нет конфликтов или они были проигнорированы через модальное окно, продолжаем
+        await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
+    }
+}
 
-            const breakToggle = document.getElementById('settings-content')?.querySelector('#breakToggle')?.checked;
-            const hasBreakAhead = el.nextElementSibling?.classList.contains('break-block');
+// Вспомогательная функция для продолжения логики drop после обработки конфликтов
+async function proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId) {
+    if (isToBuffer) {
+        targetContainer.appendChild(el);
+        el.dataset.breakCreated = '';
+        console.log(`📦 Lesson ${lessonId} перемещен в буфер`);
+    } else {
+        sortAndInsert(targetContainer, el);
+        console.log(`📅 Lesson ${lessonId} перемещен в день ${newDay}`);
 
-            // Создаем новый перерыв ТОЛЬКО если:
-            // 1. Галочка включена
-            // 2. Занятие из буфера (oldDay === 0)
-            // 3. После занятия нет перерыва
-            if (breakToggle && oldDay === 0 && !hasBreakAhead) {
-                console.log(`⏳ Создаем новый перерыв для lesson ${lessonId} в дне ${newDay}`);
-                await handleBreakCreation(el, targetContainer, newDay, lessonId);
-            }
+        const breakToggle = document.getElementById('settings-content')?.querySelector('#breakToggle')?.checked;
+        const hasBreakAhead = el.nextElementSibling?.classList.contains('break-block');
+
+        // Создаем новый перерыв ТОЛЬКО если:
+        // 1. Галочка включена
+        // 2. Занятие из буфера (oldDay === 0)
+        // 3. После занятия нет перерыва
+        if (breakToggle && oldDay === 0 && !hasBreakAhead) {
+            console.log(`⏳ Создаем новый перерыв для lesson ${lessonId} в дне ${newDay}`);
+            await handleBreakCreation(el, targetContainer, newDay, lessonId);
         }
+    }
 
-        // Синхронизация с сервером
-        if (oldDay !== newDay) {
-            el.dataset.day = newDay;
-            await updateLessonOnServer(el, lessonId, newDay);
+    if (oldDay !== newDay) {
+        el.dataset.day = newDay;
+        await updateLessonOnServer(el, lessonId, newDay);
+    }
+
+    // Если открыт вид занятости комнат — обновим таблицу
+    const classroomView = document.getElementById('classroom-view');
+    if (classroomView && getComputedStyle(classroomView).display !== 'none' && typeof window.loadClassroomScheduleView === 'function') {
+        try {
+            await window.loadClassroomScheduleView();
+        } catch (e) {
+            console.warn('Не удалось обновить таблицу занятости комнат:', e);
         }
     }
 }

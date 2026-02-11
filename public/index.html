@@ -28,413 +28,453 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <!-- Правый верхний угол с надписью ADMIN и кнопкой выхода -->
-    <div class="admin-header">
-      <span class="admin-badge">ADMIN</span>
-      <!-- Индикатор соединения с сервером -->
-      <div id="connection-status" class="connection-indicator" title="Статус соединения с сервером">
-        <span class="connection-dot disconnected"></span>
-        <span class="connection-text">Подключение...</span>
+<div class="container">
+  <!-- Правый верхний угол с надписью ADMIN и кнопкой выхода -->
+  <div class="admin-header">
+    <span class="admin-badge">ADMIN</span>
+    <!-- Индикатор соединения с сервером -->
+    <div id="connection-status" class="connection-indicator" title="Статус соединения с сервером">
+      <span class="connection-dot disconnected"></span>
+      <span class="connection-text">Подключение...</span>
+    </div>
+    <button id="logout-btn" class="logout-btn">
+      Выйти
+    </button>
+  </div>
+  <!-- Вкладки для формы, буфера и настроек -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
+    <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
+    <button class="tab-btn" onclick="window.openTab('add-classroom-tab')">Добавить аудиторию</button>
+    <button class="tab-btn" onclick="window.openTab('add-professor-tab')">Добавить преподавателя</button>
+    <button class="tab-btn" onclick="window.openTab('add-subject-tab')">Добавить предмет</button>
+  </div>
+
+  <!-- Содержимое вкладки "Создать занятие" -->
+  <div id="lesson-tab-content" class="tab-content active">
+    <!-- Блок выбора расписания -->
+    <div class="schedule-select-block">
+      <h2>Выбрать расписание</h2>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <div class="form-group" style="flex-grow: 1;">
+          <label for="facultySelect">Факультет:</label>
+          <select id="facultySelect">
+            <option value="">-- Выберите факультет --</option>
+          </select>
+        </div>
+        <button onclick="window.openCreateFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Создать новый факультет</button>
+        <button onclick="window.openEditFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Обновить</button>
+        <button onclick="window.openDeleteFacultyModal()" style="white-space: nowrap; margin-top: 20px; background:#dc3545;">Удалить</button>
       </div>
-      <button id="logout-btn" class="logout-btn">
-        Выйти
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="form-group" style="flex-grow: 1;">
+          <label for="scheduleSelect">Расписание:</label>
+          <select id="scheduleSelect">
+            <option value="">-- Выберите расписание --</option>
+          </select>
+        </div>
+        <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Создать новое расписание</button>
+        <button onclick="window.openEditScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Обновить</button>
+        <button onclick="window.openDeleteScheduleModal()" style="white-space: nowrap; margin-top: 10px; background:#dc3545;">Удалить</button>
+      </div>
+      <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
+    </div>
+
+    <!-- НОВОЕ: Блок просмотра расписания преподавателя -->
+    <div class="schedule-select-block" style="margin-top: 20px; border-top: 2px solid #a3b8cd; padding-top: 20px;">
+      <h2>Расписание преподавателя</h2>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="form-group" style="flex-grow: 1;">
+          <label for="professorSelect">Выберите преподавателя:</label>
+          <select id="professorSelect">
+            <option value="">-- Выберите преподавателя --</option>
+          </select>
+        </div>
+        <button onclick="window.loadProfessorSchedule()" style="white-space: nowrap; margin-top: 20px;">Показать расписание</button>
+        <button onclick="window.clearProfessorSchedule()" style="white-space: nowrap; margin-top: 20px; background:#6c757d;">Очистить</button>
+      </div>
+    </div>
+    <div class="form-flex-row">
+      <!-- Блок создания занятия -->
+      <div class="lesson-form-block">
+        <h2>Создать занятие</h2>
+        <div class="form-group">
+          <label for="subjectSelect">Предмет:</label>
+          <select id="subjectSelect">
+            <option value="">-- Выберите предмет --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="teacherSelect">Преподаватель:</label>
+          <select id="teacherSelect">
+            <option value="">-- Выберите преподавателя --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="classroomSelect">Аудитория:</label>
+          <select id="classroomSelect">
+            <option value="">-- Выберите аудиторию --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
+          <input type="text" id="timeInput" placeholder="09:00-10:30">
+        </div>
+        <button onclick="window.addNewLesson()">Добавить занятие</button>
+      </div>
+      <!-- Блок создания перерыва -->
+      <div class="break-form-block">
+        <h2>Создать перерыв</h2>
+        <div class="form-group">
+          <label for="breakDaySelect">День:</label>
+          <select id="breakDaySelect">
+            <option value="1">Понедельник</option>
+            <option value="2">Вторник</option>
+            <option value="3">Среда</option>
+            <option value="4">Четверг</option>
+            <option value="5">Пятница</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="breakStartInput">Начало перерыва (ЧЧ:ММ):</label>
+          <input type="text" id="breakStartInput" placeholder="10:30">
+        </div>
+        <div class="form-group">
+          <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
+          <input type="text" id="breakEndInput" placeholder="10:45">
+        </div>
+        <!-- Добавлен flex-растягивающий контейнер -->
+        <div style="flex-grow:1;"></div>
+        <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
+      </div>
+    </div>
+    <!-- Буфер теперь только внутри lesson-tab-content -->
+    <div id="buffer-content" class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+      <h2>Буфер</h2>
+      <!-- Карточки из буфера будут добавляться сюда JS-ом -->
+    </div>
+  </div>
+
+  <!-- Содержимое вкладки "Настройки" -->
+  <div id="settings-content" class="tab-content">
+    <h2>Параметры</h2>
+    <div class="settings-group">
+      <label>
+        <input type="checkbox" id="breakToggle" checked>
+        Автоматические перерывы
+      </label>
+
+      <label>
+        Длительность перерыва (мин):
+        <input type="number" id="breakDuration" value="10" min="5" max="30">
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <label>
+        <input type="checkbox" id="allowCollision">
+        Разрешить пересечения во времени
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <label>
+        <input type="checkbox" id="checkClassroomBusy" checked>
+        Проверять занятость кабинетов
+      </label>
+      <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать один кабинет в одно и то же время</p>
+    </div>
+
+    <div class="settings-group">
+      <label>
+        <input type="checkbox" id="checkProfessorBusy" checked>
+        Проверять занятость профессоров
+      </label>
+      <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать одного профессора в одно и то же время</p>
+    </div>
+  </div>
+
+  <!-- Вкладка добавления аудитории -->
+  <div id="add-classroom-tab" class="tab-content">
+    <div style="display: flex; gap: 32px;">
+      <!-- Форма добавления -->
+      <div style="flex: 0 0 320px;">
+        <h2>Добавить аудиторию</h2>
+        <div class="form-group">
+          <label for="newClassroomNumber">Номер аудитории:</label>
+          <input type="text" id="newClassroomNumber" placeholder="101">
+        </div>
+        <button onclick="window.addClassroom()">Добавить аудиторию</button>
+      </div>
+      <!-- Список существующих (фиксированное окно) -->
+      <div class="scroll-list-window">
+        <h2 style="font-size:1.2em;">Список аудиторий</h2>
+        <div id="classroom-list" class="scroll-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вкладка добавления преподавателя -->
+  <div id="add-professor-tab" class="tab-content">
+    <div style="display: flex; gap: 32px;">
+
+      <!-- Список всех пользователей с переключателем isProfessor -->
+      <div class="scroll-list-window" style="flex: 1;">
+        <h2 style="font-size:1.2em;">Все пользователи</h2>
+        <div id="users-list" class="scroll-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Вкладка добавления предмета -->
+  <div id="add-subject-tab" class="tab-content">
+    <div style="display: flex; gap: 32px;">
+      <!-- Форма добавления -->
+      <div style="flex: 0 0 320px;">
+        <h2>Добавить предмет</h2>
+        <div class="form-group">
+          <label for="newSubjectName">Название предмета:</label>
+          <input type="text" id="newSubjectName" placeholder="Математика">
+        </div>
+        <button onclick="window.addSubject()">Добавить предмет</button>
+      </div>
+      <!-- Список существующих (фиксированное окно) -->
+      <div class="scroll-list-window">
+        <h2 style="font-size:1.2em;">Список предметов</h2>
+        <div id="subject-list" class="scroll-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-section">
+    <h2>Расписание</h2>
+
+    <!-- ✅ НОВОЕ: Вкладки для переключения между видами расписания -->
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #d3e0ea; padding-bottom: 10px;">
+      <button id="schedule-tab-btn" class="schedule-view-btn active" onclick="window.switchScheduleView('schedule')">
+        📅 Расписание по дням
+      </button>
+      <button id="classroom-tab-btn" class="schedule-view-btn" onclick="window.switchScheduleView('classroom')">
+        🏫 Занятость комнат
       </button>
     </div>
-    <!-- Вкладки для формы, буфера и настроек -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="window.openTab('lesson-tab-content')">Создать занятие</button>
-      <button class="tab-btn" onclick="window.openTab('settings-content')">Настройки</button>
-      <button class="tab-btn" onclick="window.openTab('add-classroom-tab')">Добавить аудиторию</button>
-      <button class="tab-btn" onclick="window.openTab('add-professor-tab')">Добавить преподавателя</button>
-      <button class="tab-btn" onclick="window.openTab('add-subject-tab')">Добавить предмет</button>
-    </div>
 
-    <!-- Содержимое вкладки "Создать занятие" -->
-    <div id="lesson-tab-content" class="tab-content active">
-      <!-- Блок выбора расписания -->
-      <div class="schedule-select-block">
-        <h2>Выбрать расписание</h2>
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <div class="form-group" style="flex-grow: 1;">
-            <label for="facultySelect">Факультет:</label>
-            <select id="facultySelect">
-              <option value="">-- Выберите факультет --</option>
-            </select>
-          </div>
-          <button onclick="window.openCreateFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Создать новый факультет</button>
-          <button onclick="window.openEditFacultyModal()" style="white-space: nowrap; margin-top: 20px;">Обновить</button>
-          <button onclick="window.openDeleteFacultyModal()" style="white-space: nowrap; margin-top: 20px; background:#dc3545;">Удалить</button>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="form-group" style="flex-grow: 1;">
-            <label for="scheduleSelect">Расписание:</label>
-            <select id="scheduleSelect">
-              <option value="">-- Выберите расписание --</option>
-            </select>
-          </div>
-          <button onclick="window.openCreateScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Создать новое расписание</button>
-          <button onclick="window.openEditScheduleModal()" style="white-space: nowrap; margin-top: 10px;">Обновить</button>
-          <button onclick="window.openDeleteScheduleModal()" style="white-space: nowrap; margin-top: 10px; background:#dc3545;">Удалить</button>
-        </div>
-        <button onclick="window.loadSchedule()" style="margin-top: 10px;">Загрузить расписание</button>
-      </div>
-
-      <!-- НОВОЕ: Блок просмотра расписания преподавателя -->
-      <div class="schedule-select-block" style="margin-top: 20px; border-top: 2px solid #a3b8cd; padding-top: 20px;">
-        <h2>Расписание преподавателя</h2>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="form-group" style="flex-grow: 1;">
-            <label for="professorSelect">Выберите преподавателя:</label>
-            <select id="professorSelect">
-              <option value="">-- Выберите преподавателя --</option>
-            </select>
-          </div>
-          <button onclick="window.loadProfessorSchedule()" style="white-space: nowrap; margin-top: 20px;">Показать расписание</button>
-          <button onclick="window.clearProfessorSchedule()" style="white-space: nowrap; margin-top: 20px; background:#6c757d;">Очистить</button>
-        </div>
-      </div>
-      <div class="form-flex-row">
-        <!-- Блок создания занятия -->
-        <div class="lesson-form-block">
-          <h2>Создать занятие</h2>
-          <div class="form-group">
-            <label for="subjectSelect">Предмет:</label>
-            <select id="subjectSelect">
-              <option value="">-- Выберите предмет --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="teacherSelect">Преподаватель:</label>
-            <select id="teacherSelect">
-              <option value="">-- Выберите преподавателя --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="classroomSelect">Аудитория:</label>
-            <select id="classroomSelect">
-              <option value="">-- Выберите аудиторию --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="timeInput">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
-            <input type="text" id="timeInput" placeholder="09:00-10:30">
-          </div>
-          <button onclick="window.addNewLesson()">Добавить занятие</button>
-        </div>
-        <!-- Блок создания перерыва -->
-        <div class="break-form-block">
-          <h2>Создать перерыв</h2>
-          <div class="form-group">
-            <label for="breakDaySelect">День:</label>
-            <select id="breakDaySelect">
-              <option value="1">Понедельник</option>
-              <option value="2">Вторник</option>
-              <option value="3">Среда</option>
-              <option value="4">Четверг</option>
-              <option value="5">Пятница</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="breakStartInput">Начало перерыва (ЧЧ:ММ):</label>
-            <input type="text" id="breakStartInput" placeholder="10:30">
-          </div>
-          <div class="form-group">
-            <label for="breakEndInput">Конец перерыва (ЧЧ:ММ):</label>
-            <input type="text" id="breakEndInput" placeholder="10:45">
-          </div>
-          <!-- Добавлен flex-растягивающий контейнер -->
-          <div style="flex-grow:1;"></div>
-          <button class="break-create-btn" onclick="window.createBreakManual()">Добавить перерыв</button>
-        </div>
-      </div>
-      <!-- Буфер теперь только внутри lesson-tab-content -->
-      <div id="buffer-content" class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-        <h2>Буфер</h2>
-        <!-- Карточки из буфера будут добавляться сюда JS-ом -->
-      </div>
-    </div>
-
-    <!-- Содержимое вкладки "Настройки" -->
-    <div id="settings-content" class="tab-content">
-      <h2>Параметры</h2>
-      <div class="settings-group">
-        <label>
-          <input type="checkbox" id="breakToggle" checked>
-          Автоматические перерывы
-        </label>
-        
-        <label>
-          Длительность перерыва (мин):
-          <input type="number" id="breakDuration" value="10" min="5" max="30">
-        </label>
-      </div>
-      
-      <div class="settings-group">
-        <label>
-          <input type="checkbox" id="allowCollision">
-          Разрешить пересечения во времени
-        </label>
-      </div>
-
-      <div class="settings-group">
-        <label>
-          <input type="checkbox" id="checkClassroomBusy" checked>
-          Проверять занятость кабинетов
-        </label>
-        <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать один кабинет в одно и то же время</p>
-      </div>
-
-      <div class="settings-group">
-        <label>
-          <input type="checkbox" id="checkProfessorBusy" checked>
-          Проверять занятость профессоров
-        </label>
-        <p style="font-size: 12px; color: #666; margin-left: 24px;">Запрещает использовать одного профессора в одно и то же время</p>
-      </div>
-    </div>
-
-    <!-- Вкладка добавления аудитории -->
-    <div id="add-classroom-tab" class="tab-content">
-      <div style="display: flex; gap: 32px;">
-        <!-- Форма добавления -->
-        <div style="flex: 0 0 320px;">
-          <h2>Добавить аудиторию</h2>
-          <div class="form-group">
-            <label for="newClassroomNumber">Номер аудитории:</label>
-            <input type="text" id="newClassroomNumber" placeholder="101">
-          </div>
-          <button onclick="window.addClassroom()">Добавить аудиторию</button>
-        </div>
-        <!-- Список существующих (фиксированное окно) -->
-        <div class="scroll-list-window">
-          <h2 style="font-size:1.2em;">Список аудиторий</h2>
-          <div id="classroom-list" class="scroll-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Вкладка добавления преподавателя -->
-    <div id="add-professor-tab" class="tab-content">
-      <div style="display: flex; gap: 32px;">
-
-        <!-- Список всех пользователей с переключателем isProfessor -->
-        <div class="scroll-list-window" style="flex: 1;">
-          <h2 style="font-size:1.2em;">Все пользователи</h2>
-          <div id="users-list" class="scroll-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Вкладка добавления предмета -->
-    <div id="add-subject-tab" class="tab-content">
-      <div style="display: flex; gap: 32px;">
-        <!-- Форма добавления -->
-        <div style="flex: 0 0 320px;">
-          <h2>Добавить предмет</h2>
-          <div class="form-group">
-            <label for="newSubjectName">Название предмета:</label>
-            <input type="text" id="newSubjectName" placeholder="Математика">
-          </div>
-          <button onclick="window.addSubject()">Добавить предмет</button>
-        </div>
-        <!-- Список существующих (фиксированное окно) -->
-        <div class="scroll-list-window">
-          <h2 style="font-size:1.2em;">Список предметов</h2>
-          <div id="subject-list" class="scroll-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-section">
-      <h2>Расписание</h2>
+    <!-- Основное расписание по дням -->
+    <div id="schedule-view" class="schedule-view-container">
       <div class="table-container">
         <table>
           <thead>
-            <tr>
-              <th>Понедельник</th>
-              <th>Вторник</th>
-              <th>Среда</th>
-              <th>Четверг</th>
-              <th>Пятница</th>
-            </tr>
+          <tr>
+            <th>Понедельник</th>
+            <th>Вторник</th>
+            <th>Среда</th>
+            <th>Четверг</th>
+            <th>Пятница</th>
+          </tr>
           </thead>
           <tbody>
-            <tr>
-              <!-- Ячейки для дней недели, с контейнером .day внутри -->
-              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-                <div class="day" data-day-index="1"></div>
-              </td>
-              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-                <div class="day" data-day-index="2"></div>
-              </td>
-              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-                <div class="day" data-day-index="3"></div>
-              </td>
-              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-                <div class="day" data-day-index="4"></div>
-              </td>
-              <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
-                <div class="day" data-day-index="5"></div>
-              </td>
-            </tr>
+          <tr>
+            <!-- Ячейки для дней недели, с контейнером .day внутри -->
+            <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+              <div class="day" data-day-index="1"></div>
+            </td>
+            <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+              <div class="day" data-day-index="2"></div>
+            </td>
+            <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+              <div class="day" data-day-index="3"></div>
+            </td>
+            <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+              <div class="day" data-day-index="4"></div>
+            </td>
+            <td class="dropzone" ondrop="window.drop(event)" ondragover="window.allowDrop(event)">
+              <div class="day" data-day-index="5"></div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Расписание занятости комнат -->
+    <div id="classroom-view" class="schedule-view-container" style="display: none;">
+      <div class="table-container">
+        <table id="classroom-schedule-table">
+          <thead id="classroom-schedule-head">
+          <!-- Будет заполнено динамически -->
+          </thead>
+          <tbody id="classroom-schedule-body">
+          <!-- Будет заполнено динамически -->
           </tbody>
         </table>
       </div>
     </div>
   </div>
+</div>
 
-  <div id="context-menu" class="context-menu">
-    <button class="delete" onclick="window.deleteItem()">Удалить</button>
-  </div>
+<div id="context-menu" class="context-menu">
+  <button class="delete" onclick="window.deleteItem()">Удалить</button>
+</div>
 
-  <!-- Модальное окно для создания факультета -->
-  <div id="create-faculty-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3>Создать новый факультет</h3>
-      <div class="form-group">
-        <label for="createFacultyName">Название факультета:</label>
-        <input type="text" id="createFacultyName" placeholder="Факультет Информатики">
-      </div>
-      <div class="form-group">
-        <label for="createFacultyShortName">Краткое название:</label>
-        <input type="text" id="createFacultyShortName" placeholder="ФИ" maxlength="10">
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="create-faculty-submit" class="app-modal-close-btn">Создать</button>
-        <button id="create-faculty-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для создания факультета -->
+<div id="create-faculty-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3>Создать новый факультет</h3>
+    <div class="form-group">
+      <label for="createFacultyName">Название факультета:</label>
+      <input type="text" id="createFacultyName" placeholder="Факультет Информатики">
+    </div>
+    <div class="form-group">
+      <label for="createFacultyShortName">Краткое название:</label>
+      <input type="text" id="createFacultyShortName" placeholder="ФИ" maxlength="10">
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="create-faculty-submit" class="app-modal-close-btn">Создать</button>
+      <button id="create-faculty-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для создания расписания -->
-  <div id="create-schedule-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3 id="create-schedule-modal-title">Создать новое расписание</h3>
-      <div class="form-group">
-        <label for="createScheduleName">Название расписания:</label>
-        <input type="text" id="createScheduleName" placeholder="Расписание 1 группы">
-      </div>
-      <div class="form-group">
-        <label for="createScheduleFacultyId">Факультет:</label>
-        <select id="createScheduleFacultyId">
-          <option value="">-- Выберите факультет --</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="createScheduleSemester">Семестр:</label>
-        <input type="number" id="createScheduleSemester" placeholder="1" min="1" max="8">
-      </div>
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="createScheduleIsExam">
-          Это расписание экзаменов
-        </label>
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="create-schedule-submit" class="app-modal-close-btn">Создать</button>
-        <button id="create-schedule-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для создания расписания -->
+<div id="create-schedule-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3 id="create-schedule-modal-title">Создать новое расписание</h3>
+    <div class="form-group">
+      <label for="createScheduleName">Название расписания:</label>
+      <input type="text" id="createScheduleName" placeholder="Расписание 1 группы">
+    </div>
+    <div class="form-group">
+      <label for="createScheduleFacultyId">Факультет:</label>
+      <select id="createScheduleFacultyId">
+        <option value="">-- Выберите факультет --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="createScheduleSemester">Семестр:</label>
+      <input type="number" id="createScheduleSemester" placeholder="1" min="1" max="8">
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="createScheduleIsExam">
+        Это расписание экзаменов
+      </label>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="create-schedule-submit" class="app-modal-close-btn">Создать</button>
+      <button id="create-schedule-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для обновления расписания -->
-  <div id="edit-schedule-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3>Обновить расписание</h3>
-      <div class="form-group">
-        <label for="editScheduleName">Название расписания:</label>
-        <input type="text" id="editScheduleName" placeholder="Расписание 1 группы">
-      </div>
-      <div class="form-group">
-        <label for="editScheduleFacultyId">Факультет:</label>
-        <select id="editScheduleFacultyId">
-          <option value="">-- Выберите факультет --</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="editScheduleSemester">Семестр:</label>
-        <input type="number" id="editScheduleSemester" placeholder="1" min="1" max="8">
-      </div>
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="editScheduleIsExam">
-          Это расписание экзаменов
-        </label>
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="edit-schedule-submit" class="app-modal-close-btn">Сохранить</button>
-        <button id="edit-schedule-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для обновления расписания -->
+<div id="edit-schedule-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3>Обновить расписание</h3>
+    <div class="form-group">
+      <label for="editScheduleName">Название расписания:</label>
+      <input type="text" id="editScheduleName" placeholder="Расписание 1 группы">
+    </div>
+    <div class="form-group">
+      <label for="editScheduleFacultyId">Факультет:</label>
+      <select id="editScheduleFacultyId">
+        <option value="">-- Выберите факультет --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="editScheduleSemester">Семестр:</label>
+      <input type="number" id="editScheduleSemester" placeholder="1" min="1" max="8">
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="editScheduleIsExam">
+        Это расписание экзаменов
+      </label>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="edit-schedule-submit" class="app-modal-close-btn">Сохранить</button>
+      <button id="edit-schedule-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для удаления расписания -->
-  <div id="delete-schedule-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3>Удалить расписание</h3>
-      <p>Вы уверены, что хотите удалить расписание? Это действие нельзя отменить.</p>
-      <p id="delete-schedule-name" style="font-weight: bold; color: #dc3545;"></p>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="delete-schedule-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
-        <button id="delete-schedule-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для удаления расписания -->
+<div id="delete-schedule-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3>Удалить расписание</h3>
+    <p>Вы уверены, что хотите удалить расписание? Это действие нельзя отменить.</p>
+    <p id="delete-schedule-name" style="font-weight: bold; color: #dc3545;"></p>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="delete-schedule-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
+      <button id="delete-schedule-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для обновления факультета -->
-  <div id="edit-faculty-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3>Обновить факультет</h3>
-      <div class="form-group">
-        <label for="editFacultyName">Название факультета:</label>
-        <input type="text" id="editFacultyName" placeholder="Факультет Информатики">
-      </div>
-      <div class="form-group">
-        <label for="editFacultyShortName">Краткое название:</label>
-        <input type="text" id="editFacultyShortName" placeholder="ФИ" maxlength="10">
-      </div>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="edit-faculty-submit" class="app-modal-close-btn">Сохранить</button>
-        <button id="edit-faculty-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для обновления факультета -->
+<div id="edit-faculty-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3>Обновить факультет</h3>
+    <div class="form-group">
+      <label for="editFacultyName">Название факультета:</label>
+      <input type="text" id="editFacultyName" placeholder="Факультет Информатики">
+    </div>
+    <div class="form-group">
+      <label for="editFacultyShortName">Краткое название:</label>
+      <input type="text" id="editFacultyShortName" placeholder="ФИ" maxlength="10">
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="edit-faculty-submit" class="app-modal-close-btn">Сохранить</button>
+      <button id="edit-faculty-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для удаления факультета -->
-  <div id="delete-faculty-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3>Удалить факультет</h3>
-      <p>Вы уверены, что хотите удалить факультет? Это действие нельзя отменить.</p>
-      <p id="delete-faculty-name" style="font-weight: bold; color: #dc3545;"></p>
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="delete-faculty-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
-        <button id="delete-faculty-cancel" class="app-modal-close-btn">Отмена</button>
-      </div>
+<!-- Модальное окно для удаления факультета -->
+<div id="delete-faculty-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3>Удалить факультет</h3>
+    <p>Вы уверены, что хотите удалить факультет? Это действие нельзя отменить.</p>
+    <p id="delete-faculty-name" style="font-weight: bold; color: #dc3545;"></p>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="delete-faculty-confirm" class="app-modal-close-btn" style="background: #dc3545;">Удалить</button>
+      <button id="delete-faculty-cancel" class="app-modal-close-btn">Отмена</button>
     </div>
   </div>
+</div>
 
-  <!-- Модальное окно для сообщений -->
-  <div id="app-modal" class="app-modal-overlay">
-    <div class="app-modal-content">
-      <h3 id="app-modal-title"></h3>
-      <p id="app-modal-message"></p>
-      <button id="app-modal-close" class="app-modal-close-btn">OK</button>
+<!-- Модальное окно для сообщений -->
+<div id="app-modal" class="app-modal-overlay">
+  <div class="app-modal-content">
+    <h3 id="app-modal-title"></h3>
+    <p id="app-modal-message"></p>
+    <button id="app-modal-close" class="app-modal-close-btn">OK</button>
+  </div>
+</div>
+
+<!-- ✅ Модальное окно конфликта при добавлении занятия -->
+<div id="conflict-modal" class="app-modal-overlay">
+  <div class="app-modal-content" style="max-width: 500px;">
+    <h3 style="color: #dc3545;">⚠️ КОНФЛИКТ РАСПИСАНИЯ</h3>
+    <div id="conflict-details" style="text-align: left; background: #fff3cd; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #ffc107;"></div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="conflict-cancel" class="app-modal-close-btn" style="background: #6c757d;">Отмена</button>
+      <button id="conflict-confirm" class="app-modal-close-btn" style="background: #dc3545;">Добавить всё равно</button>
     </div>
   </div>
+</div>
 
-  <script type="module" src="../src/js/main.js"></script>
-  <script src="../src/js/handlers/connection-modal.js"></script>
-  <!-- Проверка наличия токена авторизации -->
-  <script>
-    if (!localStorage.getItem('jwt')) {
-      window.location.href = 'auth.html';
-    }
-    // Кнопка выхода
-    document.getElementById('logout-btn').onclick = function() {
-      localStorage.removeItem('jwt');
-      window.location.href = 'auth.html';
-    };
-  </script>
+<!-- Скрипты приложения -->
+<script type="module" src="../src/js/main.js"></script>
+<script src="../src/js/handlers/connection-modal.js"></script>
+<script>
+  // Проверка наличия токена авторизации и кнопка выхода
+  if (!localStorage.getItem('jwt')) {
+    window.location.href = 'auth.html';
+  }
+  document.getElementById('logout-btn').onclick = function() {
+    localStorage.removeItem('jwt');
+    window.location.href = 'auth.html';
+  };
+</script>
 </body>
 </html>

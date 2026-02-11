@@ -610,6 +610,27 @@ td {
   background: #4a8ac2;
 }
 
+/* ===== Кнопки вида расписания (по дням / занятость комнат) ===== */
+.schedule-view-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #e9ecef;
+  color: #495057;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.schedule-view-btn.active {
+  background-color: #5b9bd5;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(91, 155, 213, 0.25);
+}
+.schedule-view-container .table-container {
+  margin-top: 10px;
+}
+
 /* --- Стили для визуального отличия типов расписания --- */
 
 /* Для элементов с меткой ЭКЗАМЕН (красный) */
@@ -847,4 +868,54 @@ select option {
 
 .professor-busy:hover {
   background-color: #ffaaaa; /* Чуть темнее при наведении */
+}
+
+/* --- Красные блоки занятости аудитории --- */
+.classroom-busy {
+  background-color: #ffcccc; /* Очень светлый красный */
+  border-left: 4px solid #dc3545; /* Красная граница */
+  color: #c82333; /* Темный красный текст */
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 1px 5px rgba(220, 53, 69, 0.2);
+  pointer-events: none; /* Не реагирует на клики */
+  z-index: 10; /* Выше чем обычные карточки */
+  position: relative;
+}
+
+.classroom-busy:hover {
+  background-color: #ffaaaa; /* Чуть темнее при наведении */
+}
+
+/* --- Вид "Занятость комнат": компактные плашки занятости --- */
+.occupancy-item {
+  display: block;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+  line-height: 1.3;
+}
+.occupancy-item .time {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.occupancy-item .meta {
+  font-size: 12px;
+  color: #394b59;
+}
+.occupancy-item .prof {
+  opacity: 0.85;
+}
+.occupancy-item.normal {
+  background: #fff8e1;           /* желтый фон при отсутствии конфликта */
+  border-color: #ffe39a;
+}
+.occupancy-item.conflict {
+  background: #ffe5e5;           /* красный фон при конфликте */
+  border-left: 4px solid #dc3545; /* акцент слева */
+  border-color: #ffc2c2;
 }

@@ -37,6 +37,45 @@ export function showModal(title, message, duration = 3000) {
 }
 
 /**
+ * Показывает модальное окно подтверждения конфликта.
+ * @param {string} message - Сообщение о конфликте.
+ * @param {function} onConfirm - Функция, вызываемая при подтверждении.
+ * @param {function} onCancel - Функция, вызываемая при отмене.
+ */
+export function showConflictConfirmationModal(message, onConfirm, onCancel) {
+    const conflictModal = document.getElementById('conflict-modal');
+    const conflictDetails = document.getElementById('conflict-details');
+    const conflictConfirmBtn = document.getElementById('conflict-confirm');
+    const conflictCancelBtn = document.getElementById('conflict-cancel');
+
+    if (!conflictModal || !conflictDetails || !conflictConfirmBtn || !conflictCancelBtn) {
+        console.error('Conflict modal elements not found.');
+        return;
+    }
+
+    conflictDetails.innerHTML = message;
+    conflictModal.classList.add('active');
+
+    conflictConfirmBtn.onclick = () => {
+        conflictModal.classList.remove('active');
+        onConfirm();
+    };
+
+    conflictCancelBtn.onclick = () => {
+        conflictModal.classList.remove('active');
+        onCancel();
+    };
+
+    // Закрытие по клику вне модального окна (опционально)
+    conflictModal.onclick = (e) => {
+        if (e.target === conflictModal) {
+            conflictModal.classList.remove('active');
+            onCancel();
+        }
+    };
+}
+
+/**
  * Скрывает модальное окно.
  */
 export function hideModal() {

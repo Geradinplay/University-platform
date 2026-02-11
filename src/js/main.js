@@ -1461,7 +1461,7 @@ async function initializeApp() {
 
     // ✅ НОВОЕ: Загружаем список преподавателей для выбора расписания преподавателя
     await loadProfessorsList();
-    console.log('👨‍🏫 Список преподавателей загруже��');
+    console.log('👨‍🏫 Список преподавателей загружен');
 
     // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
     window.openTab('lesson-tab-content');
@@ -1519,6 +1519,194 @@ async function initializeApp() {
     };
     document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
 }
+
+// ===== Переключение вида расписания (по дням / занятость комнат) =====
+function switchScheduleView(view) {
+    try {
+        const scheduleView = document.getElementById('schedule-view');
+        const classroomView = document.getElementById('classroom-view');
+        const scheduleTabBtn = document.getElementById('schedule-tab-btn');
+        const classroomTabBtn = document.getElementById('classroom-tab-btn');
+        if (!scheduleView || !classroomView || !scheduleTabBtn || !classroomTabBtn) {
+            console.warn('switchScheduleView: отсутствуют элементы вида расписания', {
+                scheduleView: !!scheduleView,
+                classroomView: !!classroomView,
+                scheduleTabBtn: !!scheduleTabBtn,
+                classroomTabBtn: !!classroomTabBtn,
+            });
+            return;
+        }
+        const showSchedule = view === 'schedule';
+        scheduleView.style.display = showSchedule ? '' : 'none';
+        classroomView.style.display = showSchedule ? 'none' : '';
+        scheduleTabBtn.classList.toggle('active', showSchedule);
+        classroomTabBtn.classList.toggle('active', !showSchedule);
+        console.log('✅ Переключил вид расписания:', view);
+
+        // Лениво подгрузим занятость комнат при первом открытии
+        if (!showSchedule) {
+            if (typeof window.loadClassroomScheduleView === 'function') {
+                window.loadClassroomScheduleView();
+            } else {
+                console.log('ℹ️ loadClassroomScheduleView() не определена — таблица занятости будет заполнена позже');
+            }
+        }
+    } catch (e) {
+        console.error('❌ Ошибка в switchScheduleView:', e);
+    }
+}
+// Экспортируем в window для использования из HTML
+window.switchScheduleView = switchScheduleView;
+
+// ===== ВИД "Занятость комнат" =====
+window.loadClassroomScheduleView = async function() {
+    try {
+        const head = document.getElementById('classroom-schedule-head');
+        const body = document.getElementById('classroom-schedule-body');
+        if (!head || !body) {
+            console.warn('loadClassroomScheduleView: элементы таблицы не найдены');
+            return;
+        }
+
+        // Строим заголовок: Кабинет + Пн..Пт
+        head.innerHTML = '';
+        const trHead = document.createElement('tr');
+        const thRoom = document.createElement('th');
+        thRoom.textContent = 'Кабинет';
+        trHead.appendChild(thRoom);
+        const dayTitles = ['Понедельник','Вторник','Среда','Четверг','Пятница'];
+        for (const title of dayTitles) {
+            const th = document.createElement('th');
+            th.textContent = title;
+            trHead.appendChild(th);
+        }
+        head.appendChild(trHead);
+
+        // Загрузим справочник аудиторий для отображения номеров
+        const classrooms = await getClassrooms().catch(() => []);
+        const classMap = new Map();
+        classrooms.forEach(c => classMap.set(String(c.id), c.number));
+
+        // 1) Загружаем все расписания и фильтруем isExam = false
+        const allSchedules = await getSchedules();
+        const regularSchedules = (allSchedules || []).filter(s => !s.isExam);
+
+        // 2) Загружаем занятия для всех регулярных расписаний параллельно
+        const lessonsArrays = await Promise.all(
+            regularSchedules.map(async s => {
+                try {
+                    return await getLessonsByScheduleId(s.id);
+                } catch (e) {
+                    console.warn('Не удалось загрузить занятия для расписания', s.id, e);
+                    return [];
+                }
+            })
+        );
+        const allLessons = lessonsArrays.flat();
+
+        // 3) Группируем по (день, аудитория)
+        const lessonsByDayAndRoom = new Map(); // key: `${day}|${roomId}` -> [{start,end,subject,prof}]
+        const roomIdsInUse = new Set();
+
+        allLessons.forEach(l => {
+            const day = Number(l.day);
+            if (!day || day < 1 || day > 5) return; // пропускаем буфер и некорректные
+            const roomId = String(l.classroom?.id ?? '');
+            if (!roomId) return;
+
+            const professor = l.professor || l.user || {};
+            const subject = l.subject?.name || 'Занятие';
+            const prof = professor.name || professor.username || '';
+            const start = l.startTime;
+            const end = l.endTime;
+            if (!start || !end) return;
+
+            const key = `${day}|${roomId}`;
+            if (!lessonsByDayAndRoom.has(key)) lessonsByDayAndRoom.set(key, []);
+            lessonsByDayAndRoom.get(key).push({ start, end, subject, prof });
+            roomIdsInUse.add(roomId);
+        });
+
+        // 4) Строим тело таблицы по всем аудиториям (если справочник пуст — по найденным id)
+        body.innerHTML = '';
+        if (roomIdsInUse.size === 0 && classrooms.length === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.style.textAlign = 'center';
+            td.style.color = '#6a829a';
+            td.textContent = 'Нет данных для отображения';
+            tr.appendChild(td);
+            body.appendChild(tr);
+            return;
+        }
+
+        const roomIds = (classrooms.length > 0
+            ? classrooms.map(c => String(c.id))
+            : Array.from(roomIdsInUse));
+
+        // Отсортируем по номеру кабинета, если известен, иначе по id
+        const sortedRoomIds = roomIds.sort((a,b) => {
+            const na = classMap.get(a) || a; const nb = classMap.get(b) || b;
+            return String(na).localeCompare(String(nb), 'ru', { numeric: true });
+        });
+
+        // Вспомогательная функция: проставить флаг conflict элементам внутри одного дня/комнаты
+        function markConflicts(items) {
+            // items: [{start,end,subject,prof}] -> добавим startMin,endMin,conflict
+            const list = items.map(it => ({
+                ...it,
+                startMin: parseTimeToMinutes(it.start),
+                endMin: parseTimeToMinutes(it.end),
+                conflict: false
+            })).sort((a,b) => a.startMin - b.startMin);
+
+            for (let i = 0; i < list.length; i++) {
+                for (let j = i + 1; j < list.length; j++) {
+                    if (list[j].startMin >= list[i].endMin) break; // дальше пересечений не будет
+                    // Пересечение
+                    list[i].conflict = true;
+                    list[j].conflict = true;
+                }
+            }
+            return list;
+        }
+
+        for (const roomId of sortedRoomIds) {
+            const tr = document.createElement('tr');
+            const tdRoom = document.createElement('td');
+            tdRoom.style.fontWeight = '600';
+            tdRoom.textContent = `Каб. ${classMap.get(roomId) || roomId}`;
+            tr.appendChild(tdRoom);
+
+            for (let day = 1; day <= 5; day++) {
+                const td = document.createElement('td');
+                td.style.verticalAlign = 'top';
+                td.style.padding = '8px';
+                const key = `${day}|${roomId}`;
+                const rawItems = lessonsByDayAndRoom.get(key) || [];
+
+                if (rawItems.length === 0) {
+                    td.innerHTML = '<div style="color:#9aa9b5; font-size:12px;">Свободно</div>';
+                } else {
+                    const items = markConflicts(rawItems);
+                    items.forEach(it => {
+                        const div = document.createElement('div');
+                        div.className = 'occupancy-item ' + (it.conflict ? 'conflict' : 'normal');
+                        div.innerHTML = `<div class="time"><strong>${it.start}-${it.end}</strong></div>
+                                         <div class="meta">${it.subject}${it.prof ? `, <span class="prof">${it.prof}</span>` : ''}</div>`;
+                        td.appendChild(div);
+                    });
+                }
+                tr.appendChild(td);
+            }
+            body.appendChild(tr);
+        }
+        console.log('✅ Таблица занятости комнат обновлена (агрегация по всем неэкзаменационным расписаниям)');
+    } catch (e) {
+        console.error('❌ Ошибка в loadClassroomScheduleView:', e);
+    }
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
