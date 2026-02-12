@@ -1013,6 +1013,22 @@ window.loadProfessorSchedule = async function() {
     }
 };
 
+// Очистка отображения расписания преподавателя
+window.clearProfessorSchedule = function(resetSelect = false) {
+    try {
+        const removed = document.querySelectorAll('.professor-busy');
+        removed.forEach(el => el.remove());
+        if (resetSelect) {
+            const sel = document.getElementById('professorSelect');
+            if (sel) sel.value = '';
+        }
+        console.log(`🧹 Очистил занятость преподавателя, удалено блоков: ${removed.length}`);
+        window.showToast?.('Занятость преподавателя очищена');
+    } catch (e) {
+        console.error('Ошибка очистки расписания преподавателя:', e);
+    }
+};
+
 async function loadScheduleList(page = 0, pageSize = 50) {
     const schedules = await getSchedules();
     const container = document.getElementById('schedule-list');
