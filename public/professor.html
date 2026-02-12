@@ -109,7 +109,7 @@
 </head>
 <body>
 <div class="container">
-  <div class="professor-header" style="display: flex; justify-content: space-between; align-items: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);">
+  <div class="professor-header" style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);">
     <div style="display: flex; align-items: center; gap: 25px; flex: 1;">
       <div class="professor-avatar" id="prof-avatar">П</div>
       <div class="professor-info">
@@ -117,6 +117,11 @@
         <div class="email" id="prof-email"></div>
         <div class="subtitle">Личный кабинет преподавателя</div>
       </div>
+    </div>
+    <!-- Индикатор статуса соединения -->
+    <div id="connection-status" class="connection-status" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: fit-content;">
+      <span class="connection-dot"></span>
+      <span class="connection-text"></span>
     </div>
     <button id="logout-btn" class="logout-btn" style="padding: 10px 20px; font-size: 15px; border: none; background: rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 600;">Выйти</button>
   </div>

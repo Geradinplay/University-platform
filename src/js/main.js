@@ -711,12 +711,18 @@ async function loadSchedulesByFaculty() {
  */
 window.loadSchedule = async function() {
     try {
-        const scheduleId = document.getElementById('scheduleSelect').value;
+        const scheduleSelectEl = document.getElementById('scheduleSelect');
+        if (!scheduleSelectEl) {
+            console.warn('⚠️ Элемент scheduleSelect не найден на странице');
+            return;
+        }
+        const scheduleId = scheduleSelectEl.value;
 
         if (!scheduleId) {
             console.warn('⚠️ Расписание не выбрано');
             // Очищаем доску и буфер
-            document.getElementById('buffer-content').innerHTML = '<h2>Буфер</h2>';
+            const bufferEl = document.getElementById('buffer-content');
+            if (bufferEl) bufferEl.innerHTML = '<h2>Буфер</h2>';
             document.querySelectorAll('.table-container tbody td .day').forEach(dayContainer => {
                 dayContainer.innerHTML = '';
             });
