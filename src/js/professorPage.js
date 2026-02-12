@@ -235,7 +235,9 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
             const div = document.createElement('div'); div.className = 'occupancy-item lesson-card'; div.style.marginBottom = '8px';
             const roomLabel = l.room ? `, каб. ${l.room}` : '';
             const extra = !l.isExam
-              ? `<div class=\"meta meta-extra\">${l.facultyName} • ${l.scheduleName} • ${l.semester}</div>`
+              ? `<div class=\"meta meta-extra\">${l.facultyName}</div>
+                 <div class=\"meta meta-extra\">${l.semester && isNaN(Number(l.semester)) ? l.semester : (l.scheduleName || '')}</div>
+                 <div class=\"meta meta-extra\">семестр ${typeof l.semester === 'number' ? l.semester : (Number(l.semester) || '-')}</div>`
               : `<div class=\"meta meta-extra\">${l.scheduleName}</div>`;
             div.innerHTML = `<div class=\"time\"><strong>${l.start}-${l.end}</strong></div>
                              <div class=\"meta meta-main\">${l.subject}${roomLabel}</div>
