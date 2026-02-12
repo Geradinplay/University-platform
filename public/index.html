@@ -533,6 +533,36 @@
   </div>
 </div>
 
+<!-- ✅ Модальное окно подробной информации занятости преподавателей -->
+<div id="professor-occupancy-details-modal" class="app-modal-overlay">
+  <div class="app-modal-content" style="max-width: 520px; text-align: left;">
+    <h3>Занятость преподавателя</h3>
+    <div id="professor-occupancy-details-content" style="display: grid; grid-template-columns: 180px 1fr; gap: 10px;">
+      <div style="color:#6a829a;">Преподаватель:</div>
+      <div id="pocc-prof"></div>
+      <div style="color:#6a829a;">День:</div>
+      <div id="pocc-day"></div>
+      <div style="color:#6a829a;">Время:</div>
+      <div id="pocc-time"></div>
+      <div style="color:#6a829a;">Предмет:</div>
+      <div id="pocc-subject"></div>
+      <div style="color:#6a829a;">Аудитория:</div>
+      <div id="pocc-room"></div>
+      <div style="color:#6a829a;">Факультет (кратко):</div>
+      <div id="pocc-faculty"></div>
+      <div style="color:#6a829a;">Факультет (полное):</div>
+      <div id="pocc-faculty-full"></div>
+      <div style="color:#6a829a;">Расписание:</div>
+      <div id="pocc-schedule-name"></div>
+      <div style="color:#6a829a;">Тип:</div>
+      <div id="pocc-type"></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button id="professor-occupancy-details-close" class="app-modal-close-btn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <!-- Скрипты приложения -->
 <script type="module" src="../src/js/main.js"></script>
 <script src="../src/js/handlers/connection-modal.js"></script>

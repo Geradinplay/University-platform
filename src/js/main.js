@@ -1627,6 +1627,30 @@ function switchScheduleView(view) {
     }
 }
 
+// Функция открытия модального окна подробностей занятости преподавателя
+function openProfessorOccupancyDetailsModal(data) {
+    try {
+        const overlay = document.getElementById('professor-occupancy-details-modal');
+        if (!overlay) return;
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text || ''; };
+        setText('pocc-prof', data.prof || '—');
+        setText('pocc-day', data.dayLabel || '—');
+        setText('pocc-time', data.time || '—');
+        setText('pocc-subject', data.subject || '—');
+        setText('pocc-room', data.room || '—');
+        setText('pocc-faculty', data.faculty || '—');
+        setText('pocc-faculty-full', data.facultyFull || '—');
+        setText('pocc-schedule-name', data.scheduleName || '—');
+        setText('pocc-type', data.isExam ? 'Экзамены' : 'Учебное');
+        overlay.classList.add('active');
+        const closeBtn = document.getElementById('professor-occupancy-details-close');
+        if (closeBtn) closeBtn.onclick = () => overlay.classList.remove('active');
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('active'); };
+    } catch (e) {
+        console.error('Ошибка открытия professor-occupancy-details-modal', e);
+    }
+}
+
 // НОВОЕ: Представление «Занятость профессоров»
 window.loadProfessorOccupancyView = async function() {
     try {
@@ -1645,21 +1669,34 @@ window.loadProfessorOccupancyView = async function() {
         });
         head.appendChild(trHead);
 
-        // Загружаем всех преподавателей и все расписания
-        const professors = await getProfessors();
-        const allSchedules = await getSchedules();
+        // Загружаем всех преподавателей, все расписания и справочник факультетов
+        const [professors, allSchedules, faculties] = await Promise.all([
+            getProfessors(),
+            getSchedules(),
+            getFaculties?.() || Promise.resolve([])
+        ]);
         let schedulesFiltered = (allSchedules || []).slice();
         if (typeFilter !== 'all') {
             const isExamVal = (typeFilter === 'true');
             schedulesFiltered = schedulesFiltered.filter(s => Boolean(s.isExam) === isExamVal);
         }
 
+        // Подготовим карты факультетов
+        const facultyShortMap = new Map((faculties || []).map(f => [String(f.id), (f.shortName || f.name || '')]));
+        const facultyFullMap = new Map((faculties || []).map(f => [String(f.id), (f.name || f.shortName || '')]));
+
         // Собираем занятия по отфильтрованным расписаниям
         let lessons = [];
         for (const sch of schedulesFiltered) {
             try {
                 const schLessons = await getLessonsByScheduleId(sch.id);
-                schLessons.forEach(l => { l._schedule = sch; });
+                // Проставляем _schedule и вычисляем facultyId если отсутствует
+                schLessons.forEach(l => {
+                    l._schedule = sch;
+                    if (!l._schedule.facultyId && l._schedule.faculty?.id) {
+                        l._schedule.facultyId = l._schedule.faculty.id;
+                    }
+                });
                 lessons = lessons.concat(schLessons);
             } catch (e) {
                 // Игнорируем ошибки отдельных расписаний
@@ -1678,7 +1715,7 @@ window.loadProfessorOccupancyView = async function() {
             const sch = l._schedule || {};
             const key = `${keyBase}|${day}`;
             if (!mapByProfAndDay.has(key)) mapByProfAndDay.set(key, []);
-            mapByProfAndDay.get(key).push({ start, end, subject, classroom, _schedule: sch });
+            mapByProfAndDay.get(key).push({ start, end, subject, classroom, _schedule: sch, day });
         });
 
         function markConflicts(items) {
@@ -1706,6 +1743,24 @@ window.loadProfessorOccupancyView = async function() {
                         div.className = 'occupancy-item ' + (it.conflict ? 'conflict' : 'normal');
                         div.innerHTML = `<div class="time"><strong>${it.start}-${it.end}</strong></div>
                                          <div class="meta">${it.subject}${it.classroom ? `, каб. ${it.classroom}` : ''}</div>`;
+                        // Определяем факультет через facultyId или вложенный объект
+                        const sch = it._schedule || {};
+                        const facultyIdStr = sch.facultyId != null ? String(sch.facultyId) : (sch.faculty?.id != null ? String(sch.faculty.id) : '');
+                        const facultyShort = facultyIdStr ? (facultyShortMap.get(facultyIdStr) || '') : (sch?.faculty?.shortName || sch?.faculty?.name || '');
+                        const facultyFull = facultyIdStr ? (facultyFullMap.get(facultyIdStr) || '') : (sch?.faculty?.name || sch?.faculty?.shortName || '');
+                        div.addEventListener('click', () => {
+                            openProfessorOccupancyDetailsModal({
+                                prof: p.name || p.username,
+                                dayLabel: getDayName(it.day),
+                                time: `${it.start}-${it.end}`,
+                                subject: it.subject,
+                                room: it.classroom ? `Каб. ${it.classroom}` : '',
+                                faculty: facultyShort,
+                                facultyFull: facultyFull,
+                                scheduleName: sch?.name || '',
+                                isExam: !!sch?.isExam,
+                            });
+                        });
                         td.appendChild(div);
                     });
                 }
