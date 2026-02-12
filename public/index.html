@@ -257,6 +257,10 @@
       <button id="classroom-tab-btn" class="schedule-view-btn" onclick="window.switchScheduleView('classroom')">
         🏫 Занятость комнат
       </button>
+      <!-- НОВОЕ: вкладка занятости профессоров -->
+      <button id="professor-tab-btn" class="schedule-view-btn" onclick="window.switchScheduleView('professor')">
+        👨‍🏫 Занятость профессоров
+      </button>
     </div>
 
     <!-- Основное расписание по дням -->
@@ -310,11 +314,36 @@
           <option value="7">7</option>
           <option value="8">8</option>
         </select>
+        <!-- НОВОЕ: Переключатель типа расписания -->
+        <label for="classroomIsExam" style="margin-left:15px; color:#334e68; font-weight:600;">Тип:</label>
+        <select id="classroomIsExam" style="padding:6px 10px; border:1px solid #cdd5df; border-radius:6px; min-width:140px;">
+          <option value="all">Все</option>
+          <option value="false" selected>Учебное</option>
+          <option value="true">Экзамены</option>
+        </select>
       </div>
       <div class="table-container">
         <table>
           <thead id="classroom-schedule-head"><!-- будет заполнено скриптом --></thead>
           <tbody id="classroom-schedule-body"><!-- будет заполнено скриптом --></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- НОВОЕ: ВИД «Занятость профессоров» -->
+    <div id="professor-view" class="schedule-view-container" style="display:none;">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+        <label for="professorIsExam" style="color:#334e68; font-weight:600;">Тип:</label>
+        <select id="professorIsExam" style="padding:6px 10px; border:1px solid #cdd5df; border-radius:6px; min-width:140px;">
+          <option value="all">Все</option>
+          <option value="false" selected>Учебное</option>
+          <option value="true">Экзамены</option>
+        </select>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead id="professor-occupancy-head"><!-- будет заполнено скриптом --></thead>
+          <tbody id="professor-occupancy-body"><!-- будет заполнено скриптом --></tbody>
         </table>
       </div>
     </div>

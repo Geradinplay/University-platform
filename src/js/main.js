@@ -1581,6 +1581,7 @@ async function initializeApp() {
     // Обработчик для переключения вида расписания
     document.getElementById('schedule-tab-btn').onclick = () => switchScheduleView('schedule');
     document.getElementById('classroom-tab-btn').onclick = () => switchScheduleView('classroom');
+    document.getElementById('professor-tab-btn').onclick = () => switchScheduleView('professor');
 }
 
 // ===== Переключение вида расписания (по дням / занятость комнат) =====
@@ -1588,36 +1589,143 @@ function switchScheduleView(view) {
     try {
         const scheduleView = document.getElementById('schedule-view');
         const classroomView = document.getElementById('classroom-view');
+        const professorView = document.getElementById('professor-view');
         const scheduleTabBtn = document.getElementById('schedule-tab-btn');
         const classroomTabBtn = document.getElementById('classroom-tab-btn');
-        if (!scheduleView || !classroomView || !scheduleTabBtn || !classroomTabBtn) {
+        const professorTabBtn = document.getElementById('professor-tab-btn');
+        if (!scheduleView || !classroomView || !scheduleTabBtn || !classroomTabBtn || !professorView || !professorTabBtn) {
             console.warn('switchScheduleView: отсутствуют элементы вида расписания', {
                 scheduleView: !!scheduleView,
                 classroomView: !!classroomView,
+                professorView: !!professorView,
                 scheduleTabBtn: !!scheduleTabBtn,
                 classroomTabBtn: !!classroomTabBtn,
+                professorTabBtn: !!professorTabBtn,
             });
             return;
         }
         const showSchedule = view === 'schedule';
+        const showClassroom = view === 'classroom';
+        const showProfessor = view === 'professor';
         scheduleView.style.display = showSchedule ? '' : 'none';
-        classroomView.style.display = showSchedule ? 'none' : '';
+        classroomView.style.display = showClassroom ? '' : 'none';
+        professorView.style.display = showProfessor ? '' : 'none';
         scheduleTabBtn.classList.toggle('active', showSchedule);
-        classroomTabBtn.classList.toggle('active', !showSchedule);
+        classroomTabBtn.classList.toggle('active', showClassroom);
+        professorTabBtn.classList.toggle('active', showProfessor);
         console.log('✅ Переключил вид расписания:', view);
 
-        // Лениво подгрузим занятость комнат при первом открытии
-        if (!showSchedule) {
-            if (typeof window.loadClassroomScheduleView === 'function') {
-                window.loadClassroomScheduleView();
-            } else {
-                console.log('ℹ️ loadClassroomScheduleView() не определена — таблица занятости будет заполнена позже');
-            }
+        // Лениво подгружаем соответствующие представления
+        if (showClassroom && typeof window.loadClassroomScheduleView === 'function') {
+            window.loadClassroomScheduleView();
+        }
+        if (showProfessor && typeof window.loadProfessorOccupancyView === 'function') {
+            window.loadProfessorOccupancyView();
         }
     } catch (e) {
         console.error('❌ Ошибка в switchScheduleView:', e);
     }
 }
+
+// НОВОЕ: Представление «Занятость профессоров»
+window.loadProfessorOccupancyView = async function() {
+    try {
+        const head = document.getElementById('professor-occupancy-head');
+        const body = document.getElementById('professor-occupancy-body');
+        if (!head || !body) return;
+
+        const typeSelect = document.getElementById('professorIsExam');
+        const typeFilter = (typeSelect?.value || 'all'); // 'all' | 'true' | 'false'
+
+        head.innerHTML = '';
+        const trHead = document.createElement('tr');
+        const thProf = document.createElement('th'); thProf.textContent = 'Преподаватель'; trHead.appendChild(thProf);
+        ['Понедельник','Вторник','Среда','Четверг','Пятница'].forEach(d => {
+            const th = document.createElement('th'); th.textContent = d; trHead.appendChild(th);
+        });
+        head.appendChild(trHead);
+
+        // Загружаем всех преподавателей и все расписания
+        const professors = await getProfessors();
+        const allSchedules = await getSchedules();
+        let schedulesFiltered = (allSchedules || []).slice();
+        if (typeFilter !== 'all') {
+            const isExamVal = (typeFilter === 'true');
+            schedulesFiltered = schedulesFiltered.filter(s => Boolean(s.isExam) === isExamVal);
+        }
+
+        // Собираем занятия по отфильтрованным расписаниям
+        let lessons = [];
+        for (const sch of schedulesFiltered) {
+            try {
+                const schLessons = await getLessonsByScheduleId(sch.id);
+                schLessons.forEach(l => { l._schedule = sch; });
+                lessons = lessons.concat(schLessons);
+            } catch (e) {
+                // Игнорируем ошибки отдельных расписаний
+            }
+        }
+
+        // Группируем занятия по профессору и дню
+        const mapByProfAndDay = new Map();
+        (lessons || []).forEach(l => {
+            const prof = l.professor || l.user; if (!prof || !prof.id) return;
+            const keyBase = String(prof.id);
+            const day = Number(l.day);
+            const start = l.startTime; const end = l.endTime; if (!start || !end) return;
+            const subject = l.subject?.name || '';
+            const classroom = l.classroom?.number || '';
+            const sch = l._schedule || {};
+            const key = `${keyBase}|${day}`;
+            if (!mapByProfAndDay.has(key)) mapByProfAndDay.set(key, []);
+            mapByProfAndDay.get(key).push({ start, end, subject, classroom, _schedule: sch });
+        });
+
+        function markConflicts(items) {
+            return items.map(it => ({ ...it, conflict: items.some(other => other !== it && !(other.end <= it.start || other.start >= it.end)) }));
+        }
+
+        body.innerHTML = '';
+        // Сортируем профессоров по имени
+        const sortedProfs = [...professors].sort((a,b) => String(a.name || a.username).localeCompare(String(b.name || b.username), 'ru'));
+        for (const p of sortedProfs) {
+            const tr = document.createElement('tr');
+            const tdProf = document.createElement('td'); tdProf.style.fontWeight = '600';
+            tdProf.textContent = p.name || p.username || `ID ${p.id}`; tr.appendChild(tdProf);
+
+            for (let day = 1; day <= 5; day++) {
+                const td = document.createElement('td'); td.style.verticalAlign = 'top'; td.style.padding = '8px';
+                const key = `${String(p.id)}|${day}`;
+                const rawItems = mapByProfAndDay.get(key) || [];
+                if (rawItems.length === 0) {
+                    td.innerHTML = '<div style="color:#9aa9b5; font-size:12px;">Свободно</div>';
+                } else {
+                    const items = markConflicts(rawItems).sort((a,b) => parseTimeToMinutes(a.start) - parseTimeToMinutes(b.start));
+                    items.forEach(it => {
+                        const div = document.createElement('div');
+                        div.className = 'occupancy-item ' + (it.conflict ? 'conflict' : 'normal');
+                        div.innerHTML = `<div class="time"><strong>${it.start}-${it.end}</strong></div>
+                                         <div class="meta">${it.subject}${it.classroom ? `, каб. ${it.classroom}` : ''}</div>`;
+                        td.appendChild(div);
+                    });
+                }
+                tr.appendChild(td);
+            }
+            body.appendChild(tr);
+        }
+        // Подписка на изменение селектора типа
+        const typeSelectEl = document.getElementById('professorIsExam');
+        if (typeSelectEl && !typeSelectEl._boundChange) {
+            typeSelectEl.addEventListener('change', () => {
+                window.loadProfessorOccupancyView();
+            });
+            typeSelectEl._boundChange = true;
+        }
+    } catch (e) {
+        console.error('❌ Ошибка в loadProfessorOccupancyView:', e);
+    }
+};
+
 // Экспортируем в window для использования из HTML
 window.switchScheduleView = switchScheduleView;
 
@@ -1653,7 +1761,7 @@ function openOccupancyDetailsModal(data) {
     }
 }
 
-// Функция загрузки/рендера занятости комнат с учётом семестра
+// Функция загрузки/рендера занятости комнат с учётом семестра и типа расписания
 window.loadClassroomScheduleView = async function() {
     try {
         const head = document.getElementById('classroom-schedule-head');
@@ -1666,6 +1774,9 @@ window.loadClassroomScheduleView = async function() {
             semesterSelect.value = String(selectedSemester);
         }
         if (isNaN(selectedSemester) || selectedSemester < 1 || selectedSemester > 8) selectedSemester = 1;
+
+        const typeSelect = document.getElementById('classroomIsExam');
+        const typeFilter = (typeSelect?.value || 'all'); // 'all' | 'true' | 'false'
 
         head.innerHTML = '';
         const trHead = document.createElement('tr');
@@ -1681,16 +1792,19 @@ window.loadClassroomScheduleView = async function() {
         const facultyShortMap = new Map((faculties || []).map(f => [String(f.id), (f.shortName || f.name || '')]));
         const facultyFullMap = new Map((faculties || []).map(f => [String(f.id), (f.name || f.shortName || '')]));
 
-        // ✅ Загружаем ВСЕ расписания и фильтруем по выбранному семестру
+        // Загружаем ВСЕ расписания и фильтруем по выбранному семестру и типу
         const allSchedules = await getSchedules();
-        const schedulesOfSemester = (allSchedules || []).filter(s => Number(s.semester) === selectedSemester);
+        let schedulesOfSemester = (allSchedules || []).filter(s => Number(s.semester) === selectedSemester);
+        if (typeFilter !== 'all') {
+            const isExamVal = (typeFilter === 'true');
+            schedulesOfSemester = schedulesOfSemester.filter(s => Boolean(s.isExam) === isExamVal);
+        }
 
-        // ✅ Загружаем занятия из всех расписаний выбранного семестра
+        // Загружаем занятия из всех подходящих расписаний
         let lessons = [];
         for (const sch of schedulesOfSemester) {
             try {
                 const schLessons = await getLessonsByScheduleId(sch.id);
-                // Проставляем _schedule для модалки и метаданных
                 schLessons.forEach(l => { l._schedule = sch; });
                 lessons = lessons.concat(schLessons);
             } catch (e) {
@@ -1785,7 +1899,7 @@ window.loadClassroomScheduleView = async function() {
             body.appendChild(tr);
         }
 
-        // Подписка на изменение селектора семестра
+        // Подписка на изменение селектора семестра и типа
         if (semesterSelect && !semesterSelect._boundChange) {
             semesterSelect.addEventListener('change', () => {
                 const val = Number(semesterSelect.value);
@@ -1793,6 +1907,13 @@ window.loadClassroomScheduleView = async function() {
                 window.loadClassroomScheduleView();
             });
             semesterSelect._boundChange = true;
+        }
+        const typeSelectEl = document.getElementById('classroomIsExam');
+        if (typeSelectEl && !typeSelectEl._boundChange) {
+            typeSelectEl.addEventListener('change', () => {
+                window.loadClassroomScheduleView();
+            });
+            typeSelectEl._boundChange = true;
         }
     } catch (e) {
         console.error('❌ Ошибка в loadClassroomScheduleView:', e);
