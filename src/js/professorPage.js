@@ -192,6 +192,8 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
         for (const l of schLessons) {
           const professorObj = l.user || l.professor;
           const day = Number(l.day); if (day < 1 || day > 5) continue;
+          const semesterName = sch.semesterName || sch.semester || sch.term || '-';
+          const semesterNum = sch.semesterNumber ?? sch.semesterIndex ?? (isNaN(Number(sch.semester)) ? undefined : Number(sch.semester));
           const entryCommon = {
             start: l.startTime,
             end: l.endTime,
@@ -199,7 +201,8 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
             room: l.classroom?.number || '',
             scheduleName: sch.name,
             facultyName: facultyMap.get(String(sch.facultyId)) || sch.faculty?.name || '-',
-            semester: sch.semester || sch.term || '-',
+            semesterName: semesterName,
+            semesterNum: semesterNum ?? '-',
             isExam: Boolean(sch.isExam),
             prof: professorObj?.name || professorObj?.username || '',
           };
@@ -236,8 +239,8 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
             const roomLabel = l.room ? `, каб. ${l.room}` : '';
             const extra = !l.isExam
               ? `<div class=\"meta meta-extra\">${l.facultyName}</div>
-                 <div class=\"meta meta-extra\">${l.semester && isNaN(Number(l.semester)) ? l.semester : (l.scheduleName || '')}</div>
-                 <div class=\"meta meta-extra\">семестр ${typeof l.semester === 'number' ? l.semester : (Number(l.semester) || '-')}</div>`
+                 <div class=\"meta meta-extra\">${l.semesterName}</div>
+                 <div class=\"meta meta-extra\">семестр ${l.semesterNum}</div>`
               : `<div class=\"meta meta-extra\">${l.scheduleName}</div>`;
             div.innerHTML = `<div class=\"time\"><strong>${l.start}-${l.end}</strong></div>
                              <div class=\"meta meta-main\">${l.subject}${roomLabel}</div>
@@ -384,6 +387,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function getLessonTypeBadge() {
+  const sel = document.getElementById('prof-exam-select');
+  const badge = document.getElementById('lesson-type-badge');
+  if (!sel || !badge) return;
+  const isExam = sel.value === 'true';
+  badge.textContent = isExam ? 'Экзамены' : 'Учебные';
+  badge.classList.toggle('exam', isExam);
+  badge.classList.toggle('study', !isExam);
+}
+
 function initFloatingLessonPanel() {
   const panel = document.getElementById('floating-lesson-panel');
   const handle = document.getElementById('floating-lesson-handle');
@@ -391,7 +404,7 @@ function initFloatingLessonPanel() {
   const btnClose = document.getElementById('floating-lesson-close');
   if (!panel || !handle || !btnOpen || !btnClose) return;
 
-  const show = () => { panel.style.display = 'block'; populateProfessorForm(); };
+  const show = () => { panel.style.display = 'block'; populateProfessorForm(); getLessonTypeBadge(); };
   const hide = () => { panel.style.display = 'none'; };
 
   btnOpen.addEventListener('click', show);
@@ -431,7 +444,7 @@ export function initProfessorPage() {
   const btnSchedule = document.getElementById('prof-view-schedule-btn');
   const btnRooms = document.getElementById('prof-view-rooms-btn');
   if (typeSelect && !typeSelect._bound) {
-    typeSelect.addEventListener('change', renderCurrentView);
+    typeSelect.addEventListener('change', () => { getLessonTypeBadge(); renderCurrentView(); });
     typeSelect._bound = true;
   }
   if (btnSchedule && !btnSchedule._bound) {
@@ -446,6 +459,7 @@ export function initProfessorPage() {
   if (!localStorage.getItem('professorView')) setProfView('schedule'); else setProfView(localStorage.getItem('professorView'));
   renderCurrentView();
   initFloatingLessonPanel();
+  getLessonTypeBadge();
 }
 
 window.initProfessorPage = initProfessorPage;

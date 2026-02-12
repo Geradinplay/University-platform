@@ -66,6 +66,11 @@
     .lesson-card .meta { white-space:normal; word-break:break-word; }
     .lesson-card .meta-main { margin-bottom:3px; }
     .lesson-card .meta-extra { color:#546e7a; font-size:12px; }
+
+    /* Бейдж типа занятия */
+    .type-badge { font-size:12px; padding:4px 8px; border-radius:12px; border:1px solid #cdd5df; background:#eef3f8; color:#334e68; margin-left:8px; }
+    .type-badge.exam { background:#fdecea; border-color:#f5c6cb; color:#b71c1c; }
+    .type-badge.study { background:#e8f5e9; border-color:#c8e6c9; color:#1b5e20; }
   </style>
 </head>
 <body>
@@ -91,7 +96,10 @@
   <!-- Плавающая модалка создания занятия (draggable, без оверлея) -->
   <div id="floating-lesson-panel" class="lesson-form-block" style="position:fixed; top:88px; right:32px; z-index:1000; display:none; width: 480px; padding: 16px; border-radius:10px; background:#ffffff; border:1px solid #dbe3ea; box-shadow: 0 10px 24px rgba(0,0,0,0.15); pointer-events:auto;">
     <div id="floating-lesson-handle" style="cursor:move; display:flex; align-items:center; justify-content:space-between;">
-      <h3 style="margin:0; color:#334e68; font-size:18px;">Создать занятие</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h3 style="margin:0; color:#334e68; font-size:18px;">Создать занятие</h3>
+        <span id="lesson-type-badge" class="type-badge study">Учебные</span>
+      </div>
       <button id="floating-lesson-close" style="border:none; background:transparent; color:#334e68; font-size:18px; cursor:pointer;">✕</button>
     </div>
     <div style="height:1px; background:#d7dee8; margin:10px 0 12px;"></div>
