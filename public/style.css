@@ -852,7 +852,7 @@ select option {
 
 /* --- Красные/Желтые блоки занятости преподавателя по наличию коллизий --- */
 .professor-busy.normal {
-  background-color: #fff8e1; /* Светло-жёлтый фон при отсутствии конфликта */
+  background-color: #fff8e1; /* Светло-желтый фон при отсутствии конфликта */
   border-left: 4px solid #ffab40; /* Оранжевый левый акцент */
   color: #795548; /* Более нейтральный тёмно-коричневый текст */
   box-shadow: 0 1px 5px rgba(255, 171, 64, 0.2);
@@ -939,3 +939,26 @@ select option {
   border: 1px solid #ffc2c2;     /* базовая рамка по всем сторонам */
   border-left: 4px solid #dc3545; /* акцент слева */
 }
+
+/* Тост-уведомления */
+.app-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(51, 77, 104, 0.95);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  font-size: 14px;
+  z-index: 3000;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.app-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+

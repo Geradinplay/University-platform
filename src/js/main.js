@@ -183,6 +183,7 @@ window.addClassroom = async function() {
         if (typeof window.loadClassroomScheduleView === 'function') {
             try {
                 await window.loadClassroomScheduleView();
+                window.showToast('Занятость комнат обновлена');
             } catch (e) {
                 console.warn('Не удалось обновить занятость комнат после добавления аудитории:', e);
             }
@@ -1124,6 +1125,11 @@ async function loadClassroomList(page = 0, pageSize = 50) {
                         await updateClassroom(c.id, { number: input.value });
                         nameSpan.textContent = input.value;
                         div.replaceChild(nameSpan, input);
+                        // ДОБАВЛЕНО: Обновляем занятость комнат после изменения аудитории
+                        if (typeof window.loadClassroomScheduleView === 'function') {
+                            await window.loadClassroomScheduleView();
+                            window.showToast('Занятость комнат обновлена');
+                        }
                     } catch (err) {
                         alert('Ошибка при обновлении аудитории');
                     }
@@ -1146,6 +1152,11 @@ async function loadClassroomList(page = 0, pageSize = 50) {
                 try {
                     await deleteClassroom(c.id);
                     div.remove();
+                    // ДОБАВЛЕНО: Обновляем занятость комнат после удаления аудитории
+                    if (typeof window.loadClassroomScheduleView === 'function') {
+                        await window.loadClassroomScheduleView();
+                        window.showToast('Занятость комнат обновлена');
+                    }
                 } catch (err) {
                     alert('Ошибка при удалении аудитории');
                 }
@@ -1429,6 +1440,21 @@ async function loadUsersList(page = 0, pageSize = 50) {
         console.error('Error loading users list:', err);
     }
 }
+
+// Небольшой тост-уведомитель
+window.showToast = function(message, duration = 2000) {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        toast.className = 'app-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message || '';
+    toast.classList.add('visible');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('visible'), duration);
+};
 
 // --- Lazy loading при скролле ---
 function setupScrollLoading(listId, loaderFn) {
