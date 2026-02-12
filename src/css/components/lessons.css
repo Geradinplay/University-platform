@@ -1,6 +1,21 @@
-.lesson { background: white; border: 1px solid #aaa; padding: 10px; border-radius: 8px; cursor: grab; width: 100%; max-width: 240px; position: relative; z-index: 1; }
+.lesson { background: white; border: 1px solid #aaa; padding: 12px; border-radius: 8px; cursor: grab; width: 100%; max-width: 240px; position: relative; z-index: 1; box-sizing: border-box; }
 .day .lesson { max-width: none; }
+.lesson + .lesson { margin-top: 8px; }
 .lesson-title { font-weight: bold; font-size: 16px; }
-.lesson-time { margin-top: 5px; border-top: 1px solid #eee; text-align: center; font-weight: bold; }
+.lesson-time { margin-top: 6px; border-top: 1px solid #eee; padding-top: 6px; text-align: center; font-weight: bold; }
 
-.break-block { background: #e3f2fd; border: 1px dashed #2196f3; color: #0d47a1; padding: 6px; margin: 5px 0; border-radius: 6px; text-align: center; font-size: 11px; font-weight: bold; position: relative; z-index: 1; }
+.break-block { background: #e3f2fd; border: 1px dashed #2196f3; color: #0d47a1; padding: 8px; margin: 6px 0; border-radius: 6px; text-align: center; font-size: 11px; font-weight: bold; position: relative; z-index: 1; box-sizing: border-box; }
+
+/* Блоки расписания преподавателя: жёлтые без конфликтов, более насыщенные при конфликтах */
+.professor-busy { border-radius: 6px; padding: 10px; margin: 6px 0; border: 1px solid #d4b106; box-sizing: border-box; }
+.professor-busy.normal { background: #fff8d5; border-color: #e6c200; }
+.professor-busy.conflict { background: #ffe7d9; border-color: #ff6f61; }
+.professor-busy .lesson-title { font-size: 14px; font-weight: 600; }
+.professor-busy .lesson-time { font-size: 12px; font-weight: 700; text-align: left; border-top: none; padding-top: 0; margin-bottom: 4px; }
+
+/* Элементы в таблице занятости комнат */
+.occupancy-item { border-radius: 6px; padding: 8px; margin: 6px 0; border: 1px solid #cfd8dc; background: #f9fbfc; box-sizing: border-box; }
+.occupancy-item.normal { background: #fff8d5; border-color: #e6c200; }
+.occupancy-item.conflict { background: #ffe7d9; border-color: #ff6f61; }
+.occupancy-item .time { font-size: 12px; color: #334e68; }
+.occupancy-item .meta { font-size: 12px; color: #5c6b7a; }

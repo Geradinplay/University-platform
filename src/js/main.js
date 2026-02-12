@@ -1799,15 +1799,66 @@ window.loadClassroomScheduleView = async function() {
     }
 };
 
+// Лёгкое обновление данных после переподключения (без полной переинициализации UI)
+async function refreshDataAfterReconnect() {
+    try {
+        console.log('🔁 Обновляю данные после переподключения...');
+        // Обновляем базовые справочники
+        const subjects = await getSubjects();
+        populateSelect('subjectSelect', subjects, 'name');
+
+        await window.updateProfessorsCache?.();
+        if (window.professorsList) {
+            populateSelect('teacherSelect', window.professorsList, 'name');
+        } else {
+            const professors = await getProfessors();
+            populateSelect('teacherSelect', professors, 'name');
+        }
+
+        const classrooms = await getClassrooms();
+        populateSelect('classroomSelect', classrooms, 'number');
+
+        // Обновляем список расписаний с учётом текущего факультета
+        await loadSchedules();
+        await loadFaculties();
+        await loadSchedulesByFaculty();
+
+        // Восстанавливаем выбранное расписание, если оно есть, и перезагружаем доску
+        const currentScheduleId = localStorage.getItem('currentScheduleId');
+        if (currentScheduleId) {
+            const scheduleSelect = document.getElementById('scheduleSelect');
+            if (scheduleSelect) scheduleSelect.value = currentScheduleId;
+            await window.loadSchedule();
+        }
+
+        // Обновляем вид занятости комнат
+        if (typeof window.loadClassroomScheduleView === 'function') {
+            await window.loadClassroomScheduleView();
+        }
+
+        console.log('✅ Данные обновлены после переподключения');
+        window.showToast?.('Данные обновлены после переподключения', 2500);
+    } catch (e) {
+        console.error('❌ Ошибка при обновлении данных после переподключения:', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('🔄 DOMContentLoaded: Запускаю ConnectionManager...');
         // Используем ConnectionManager для управления подключением
         await connectionManager.initialize(initializeApp);
+        // При переподключении серверa — обновляем данные без перезагрузки страницы
+        connectionManager.onReconnection(async () => {
+            await refreshDataAfterReconnect();
+        });
     } catch (error) {
         console.error("❌ Критическая ошибка при загрузке приложения:", error);
         // Даже при критической ошибке устанавливаем обработчики переподключения
         connectionManager.setupReconnectionCheck(initializeApp);
+        connectionManager.onReconnection(async () => {
+            await refreshDataAfterReconnect();
+        });
     }
 });
 
