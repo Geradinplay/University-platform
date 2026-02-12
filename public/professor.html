@@ -71,6 +71,12 @@
     .type-badge { font-size:12px; padding:4px 8px; border-radius:12px; border:1px solid #cdd5df; background:#eef3f8; color:#334e68; margin-left:8px; }
     .type-badge.exam { background:#fdecea; border-color:#f5c6cb; color:#b71c1c; }
     .type-badge.study { background:#e8f5e9; border-color:#c8e6c9; color:#1b5e20; }
+
+    /* Контекстное меню удаления */
+    .lesson-context-menu { position:absolute; display:none; background:#ffffff; border:1px solid #cdd5df; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.15); z-index:2000; min-width:160px; }
+    .lesson-context-menu ul { list-style:none; margin:0; padding:6px; }
+    .lesson-context-menu li { padding:8px 10px; cursor:pointer; border-radius:6px; }
+    .lesson-context-menu li:hover { background:#ffecec; color:#b00020; }
   </style>
 </head>
 <body>
@@ -160,6 +166,13 @@
   </div>
 
   <div id="schedule-grid"></div>
+
+  <!-- Контекстное меню карточки занятия -->
+  <div id="lesson-context-menu" class="lesson-context-menu">
+    <ul>
+      <li id="ctx-delete-lesson">Удалить занятие</li>
+    </ul>
+  </div>
 
   <!-- Модалка конфликта для страницы профессора -->
   <div id="prof-conflict-modal" class="app-modal-overlay">

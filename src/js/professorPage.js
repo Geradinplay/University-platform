@@ -1,6 +1,7 @@
 import { getSchedules, getLessonsByScheduleId } from '../../api/api.js';
 import { getSubjects, getClassrooms, createLesson } from '../../api/api.js';
 import { getFaculties } from '../../api/api.js';
+import { deleteLesson } from '../../api/api.js';
 
 function parseTimeToMinutes(t) { const [h,m] = String(t).split(':').map(Number); return h*60+m; }
 function overlaps(aStart, aEnd, bStart, bEnd) { return !(aEnd <= bStart || aStart >= bEnd); }
@@ -195,6 +196,7 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
           const semesterName = sch.semesterName || sch.semester || sch.term || '-';
           const semesterNum = sch.semesterNumber ?? sch.semesterIndex ?? (isNaN(Number(sch.semester)) ? undefined : Number(sch.semester));
           const entryCommon = {
+            id: l.id,
             start: l.startTime,
             end: l.endTime,
             subject: l.subject?.name || '',
@@ -242,9 +244,11 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
                  <div class=\"meta meta-extra\">${l.semesterName}</div>
                  <div class=\"meta meta-extra\">семестр ${l.semesterNum}</div>`
               : `<div class=\"meta meta-extra\">${l.scheduleName}</div>`;
-            div.innerHTML = `<div class=\"time\"><strong>${l.start}-${l.end}</strong></div>
+            div.innerHTML = `<div class=\"time\" style=\"display:flex; justify-content:space-between; align-items:center;\"><strong>${l.start}-${l.end}</strong></div>
                              <div class=\"meta meta-main\">${l.subject}${roomLabel}</div>
                              ${extra}`;
+            // Сохраняем id на карточке
+            div.setAttribute('data-lesson-id', String(l.id));
             td.appendChild(div);
           });
         }
@@ -302,56 +306,71 @@ window.addProfessorLesson = async function() {
     // Загружаем существующие занятия выбранного расписания
     const lessons = await getLessonsByScheduleId(scheduleId);
     const sameDayLessons = (lessons || []).filter(l => Number(l.day) === day);
-    const messages = [];
 
-    // Базовая проверка времени
-    if (sameDayLessons.some(l => overlaps(startMin, endMin, parseTimeToMinutes(l.startTime), parseTimeToMinutes(l.endTime)))) {
-      if (!allowCollision) {
-        messages.push(`Пересечение по времени в ${getDayName(day)}.`);
-      } else {
-        messages.push(`Внимание: в ${getDayName(day)} есть пересечение по времени.`);
-      }
+    // Дополнительно: собираем занятия по всем расписаниям на этот день, чтобы проверить конфликты
+    const allSchedules = await getSchedules();
+    const otherSchedules = (allSchedules || []).filter(s => String(s.id) !== String(scheduleId));
+    const allLessonsSameDay = [...sameDayLessons];
+    for (const sch of otherSchedules) {
+      try {
+        const ls = await getLessonsByScheduleId(sch.id);
+        (ls || []).forEach(l => { if (Number(l.day) === day) allLessonsSameDay.push({ ...l, _schedule: sch }); });
+      } catch (e) { /* игнор недоступных расписаний */ }
     }
 
-    // Проверка аудиторий
+    const messages = [];
+
+    // Флаги конфликтов
+    let timeConflict = false;
+    let roomConflict = false;
+    let professorConflict = false;
+
+    // Базовая проверка времени (по всем собранным занятиям этого дня)
+    if (allLessonsSameDay.some(l => overlaps(startMin, endMin, parseTimeToMinutes(l.startTime), parseTimeToMinutes(l.endTime)))) {
+      timeConflict = true;
+      messages.push(`Пересечение по времени в ${getDayName(day)} (${startStr}-${endStr}).`);
+    }
+
+    // Проверка аудиторий (по всем расписаниям)
     if (checkClassroom) {
-      sameDayLessons.forEach(l => {
+      allLessonsSameDay.forEach(l => {
         const hasTime = overlaps(startMin, endMin, parseTimeToMinutes(l.startTime), parseTimeToMinutes(l.endTime));
         const otherRoomId = String(l.classroom?.id || l.classroomId);
         if (hasTime && String(classroomId) === otherRoomId) {
-          messages.push(`Кабинет ${l.classroom?.number || ''} уже занят (${l.startTime}-${l.endTime}).`);
+          roomConflict = true;
+          const roomNum = l.classroom?.number || '';
+          const schName = l._schedule?.name || '';
+          messages.push(`Кабинет ${roomNum} уже занят (${l.startTime}-${l.endTime})${schName ? ` в расписании "${schName}"` : ''}.`);
         }
       });
     }
 
-    // Проверка преподавателя
+    // Проверка преподавателя (по всем расписаниям)
     if (checkProfessor) {
-      sameDayLessons.forEach(l => {
+      allLessonsSameDay.forEach(l => {
         const hasTime = overlaps(startMin, endMin, parseTimeToMinutes(l.startTime), parseTimeToMinutes(l.endTime));
         const otherUserId = String(l.user?.id || l.professor?.id);
         if (hasTime && String(userId) === otherUserId) {
-          messages.push(`Преподаватель уже имеет занятие (${l.startTime}-${l.endTime}).`);
+          professorConflict = true;
+          const subj = l.subject?.name || 'занятие';
+          const roomNum = l.classroom?.number || '';
+          const schName = l._schedule?.name || '';
+          messages.push(`Преподаватель уже ведет ${subj}${roomNum ? ` в ${roomNum}` : ''} (${l.startTime}-${l.endTime})${schName ? ` в расписании "${schName}"` : ''}.`);
         }
       });
     }
 
+    // Решение: жёстко блокировать если запрещены пересечения времени И они есть,
+    // либо включены проверки комнат/преподавателей и есть конфликты по ним (в любых расписаниях)
+    const hardBlock = (timeConflict && !allowCollision) || (checkClassroom && roomConflict) || (checkProfessor && professorConflict);
+
     if (messages.length > 0) {
-      if (!allowCollision && (checkClassroom || checkProfessor)) {
-        // Жесткая блокировка при выключенном разрешении пересечений
+      if (hardBlock) {
         showProfConflictModal(messages, null, () => {});
         return;
       } else {
-        // Разрешение по подтверждению
         showProfConflictModal(messages, async () => {
-          await createLesson({
-            startTime: startStr,
-            endTime: endStr,
-            day,
-            subjectId,
-            userId,
-            classroomId,
-            scheduleId: Number(scheduleId)
-          });
+          await createLesson({ startTime: startStr, endTime: endStr, day, subjectId, userId, classroomId, scheduleId: Number(scheduleId) });
           await renderCurrentView();
           alert('Занятие добавлено (с пересечением по подтверждению)');
         }, () => {});
@@ -360,15 +379,7 @@ window.addProfessorLesson = async function() {
     }
 
     // Без конфликтов — создаем сразу
-    await createLesson({
-      startTime: startStr,
-      endTime: endStr,
-      day,
-      subjectId,
-      userId,
-      classroomId,
-      scheduleId: Number(scheduleId)
-    });
+    await createLesson({ startTime: startStr, endTime: endStr, day, subjectId, userId, classroomId, scheduleId: Number(scheduleId) });
     await renderCurrentView();
     alert('Занятие добавлено');
   } catch (e) {
@@ -460,6 +471,58 @@ export function initProfessorPage() {
   renderCurrentView();
   initFloatingLessonPanel();
   getLessonTypeBadge();
+
+  // Отключаем стандартное контекстное меню на сетке и добавляем делегирование
+  const grid = document.getElementById('schedule-grid');
+  const ctxMenu = document.getElementById('lesson-context-menu');
+  const ctxDelete = document.getElementById('ctx-delete-lesson');
+  let ctxCurrentId = null;
+  if (grid && !grid._boundCtx) {
+    // Показ кастомного меню по правому клику на карточке
+    grid.addEventListener('contextmenu', (e) => {
+      const card = e.target.closest('.lesson-card');
+      if (card) {
+        e.preventDefault();
+        ctxCurrentId = card.getAttribute('data-lesson-id');
+        if (ctxMenu) {
+          const x = e.clientX; const y = e.clientY;
+          ctxMenu.style.left = x + 'px';
+          ctxMenu.style.top = y + 'px';
+          ctxMenu.style.display = 'block';
+        }
+      }
+    });
+    // Действие «Удалить занятие»
+    if (ctxDelete && !ctxDelete._bound) {
+      ctxDelete.addEventListener('click', async () => {
+        if (!ctxCurrentId) return;
+        if (!confirm('Удалить это занятие?')) { ctxMenu.style.display = 'none'; return; }
+        try {
+          await deleteLesson(ctxCurrentId);
+          ctxMenu.style.display = 'none';
+          await renderCurrentView();
+        } catch (err) {
+          ctxMenu.style.display = 'none';
+          alert('Не удалось удалить занятие: ' + (err.message || err));
+        }
+      });
+      ctxDelete._bound = true;
+    }
+    // Скрытие контекстного меню по клику вне
+    document.addEventListener('click', (e) => {
+      if (ctxMenu && ctxMenu.style.display === 'block') {
+        if (!e.target.closest('#lesson-context-menu')) {
+          ctxMenu.style.display = 'none';
+        }
+      }
+    });
+    // Скрытие при скролле
+    document.addEventListener('scroll', () => {
+      if (ctxMenu) ctxMenu.style.display = 'none';
+    }, true);
+
+    grid._boundCtx = true;
+  }
 }
 
 window.initProfessorPage = initProfessorPage;
