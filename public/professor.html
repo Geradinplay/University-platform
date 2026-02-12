@@ -56,6 +56,16 @@
     .schedule-view-btn { height:36px; padding:0 12px; border-radius:8px; border:1px solid #cdd5df; background:#eef3f8; color:#334e68; font-weight:600; cursor:pointer; }
     .schedule-view-btn:hover { background:#e2e8f0; }
     .schedule-view-btn.active { background:#3578e5; border-color:#2b6cb0; color:#fff; }
+
+    /* Удаляем общий стиль, который ломал размеры панели */
+    /* .lesson-form-block { width: 80%; } */
+
+    /* Компактные карточки расписания */
+    .lesson-card { background:#fffaf0; border-left:4px solid #f0ad4e; border-radius:6px; padding:8px 10px; line-height:1.25; }
+    .lesson-card .time { margin-bottom:4px; }
+    .lesson-card .meta { white-space:normal; word-break:break-word; }
+    .lesson-card .meta-main { margin-bottom:3px; }
+    .lesson-card .meta-extra { color:#546e7a; font-size:12px; }
   </style>
 </head>
 <body>
@@ -77,30 +87,34 @@
     <div><span style="display:inline-block; width:15px; height:15px; background:#e3f2fd; border:1px solid #2196f3;"></span> Другие</div>
   </div>
 
-  <!-- Форма добавления занятия (вверху) -->
-  <div class="lesson-form-block" style="margin: 0 auto 16px auto; padding: 24px; background:#f7fafc; border:1px solid #e1e7ef; border-radius:10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); width: 80%">
-    <h3 style="margin:0; color:#334e68; font-size:22px; text-align:left;">Создать занятие</h3>
-    <div style="height:1px; background:#d7dee8; margin:12px 0 14px;"></div>
-    <div style="display:flex; flex-direction:column; gap:10px;">
+
+  <!-- Плавающая модалка создания занятия (draggable, без оверлея) -->
+  <div id="floating-lesson-panel" class="lesson-form-block" style="position:fixed; top:88px; right:32px; z-index:1000; display:none; width: 480px; padding: 16px; border-radius:10px; background:#ffffff; border:1px solid #dbe3ea; box-shadow: 0 10px 24px rgba(0,0,0,0.15); pointer-events:auto;">
+    <div id="floating-lesson-handle" style="cursor:move; display:flex; align-items:center; justify-content:space-between;">
+      <h3 style="margin:0; color:#334e68; font-size:18px;">Создать занятие</h3>
+      <button id="floating-lesson-close" style="border:none; background:transparent; color:#334e68; font-size:18px; cursor:pointer;">✕</button>
+    </div>
+    <div style="height:1px; background:#d7dee8; margin:10px 0 12px;"></div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
       <div class="form-group">
         <label for="prof-subject-select" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">Предмет:</label>
-        <select id="prof-subject-select" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
+        <select id="prof-subject-select" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
       </div>
       <div class="form-group">
         <label for="prof-faculty-select" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">Факультет:</label>
-        <select id="prof-faculty-select" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
+        <select id="prof-faculty-select" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
       </div>
       <div class="form-group">
         <label for="prof-schedule-select" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">Расписание:</label>
-        <select id="prof-schedule-select" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
+        <select id="prof-schedule-select" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
       </div>
       <div class="form-group">
         <label for="prof-classroom-select" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">Аудитория:</label>
-        <select id="prof-classroom-select" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
+        <select id="prof-classroom-select" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;"></select>
       </div>
       <div class="form-group">
         <label for="prof-day-select" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">День:</label>
-        <select id="prof-day-select" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;">
+        <select id="prof-day-select" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;">
           <option value="1">Понедельник</option>
           <option value="2">Вторник</option>
           <option value="3">Среда</option>
@@ -110,16 +124,15 @@
       </div>
       <div class="form-group">
         <label for="prof-time-input" style="display:block; font-size:12px; color:#6a829a; margin-bottom:4px;">Время (ЧЧ:ММ-ЧЧ:ММ):</label>
-        <input type="text" id="prof-time-input" placeholder="09:00-10:30" style="width:100%; height:40px; padding:8px 10px; border:1px solid #cdd5df; border-radius:8px;" />
+        <input type="text" id="prof-time-input" placeholder="09:00-10:30" style="width:100%; height:38px; padding:6px 10px; border:1px solid #cdd5df; border-radius:8px;" />
       </div>
     </div>
-    <!-- Чекбоксы над кнопкой -->
-    <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; color:#334e68;">
+    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; color:#334e68;">
       <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="prof-allow-collision"> Разрешить пересечения во времени</label>
       <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="prof-check-classroom" checked> Проверять занятость кабинетов</label>
       <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="prof-check-professor" checked> Проверять занятость профессоров</label>
     </div>
-    <button id="prof-add-lesson-btn" onclick="window.addProfessorLesson()" style="margin-top:12px; width:100%; height:48px; background:#5b9bd5; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Добавить занятие</button>
+    <button id="prof-add-lesson-btn" onclick="window.addProfessorLesson()" style="margin-top:10px; width:100%; height:42px; background:#3578e5; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Добавить занятие</button>
   </div>
 
   <!-- Панель управления расписанием -->
@@ -130,10 +143,11 @@
       <option value="true">Экзамены</option>
     </select>
     <div style="flex:1"></div>
-    <!-- Переключатели вида -->
-    <div style="display:flex; gap:8px;">
+    <!-- Переключатели вида + кнопка открытия модалки -->
+    <div style="display:flex; gap:8px; align-items:center;">
       <button id="prof-view-schedule-btn" class="schedule-view-btn active">📅 Расписание по дням</button>
       <button id="prof-view-rooms-btn" class="schedule-view-btn">🏫 Занятость комнат</button>
+      <button id="open-floating-lesson" class="schedule-view-btn" style="background:#ffffff;">➕ Создать занятие</button>
     </div>
   </div>
 

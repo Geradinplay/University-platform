@@ -171,6 +171,13 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
     if (!grid) return;
     grid.innerHTML = '';
 
+    // Загружаем справочник факультетов для названий
+    let facultyMap = new Map();
+    try {
+      const faculties = await getFaculties?.();
+      (faculties || []).forEach(f => facultyMap.set(String(f.id), f.name));
+    } catch (e) { /* опционально */ }
+
     const allSchedules = await getSchedules();
     const schedules = (allSchedules || []).filter(s => Boolean(s.isExam) === isExamFilter);
 
@@ -191,6 +198,9 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
             subject: l.subject?.name || '',
             room: l.classroom?.number || '',
             scheduleName: sch.name,
+            facultyName: facultyMap.get(String(sch.facultyId)) || sch.faculty?.name || '-',
+            semester: sch.semester || sch.term || '-',
+            isExam: Boolean(sch.isExam),
             prof: professorObj?.name || professorObj?.username || '',
           };
           if (professorObj && String(professorObj.id) === String(userId)) {
@@ -222,10 +232,14 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
           td.innerHTML = '<div style="color:#9aa9b5; font-size:12px;">Нет занятий</div>';
         } else {
           items.forEach(l => {
-            const div = document.createElement('div'); div.className = 'occupancy-item normal'; div.style.marginBottom = '6px';
+            const div = document.createElement('div'); div.className = 'occupancy-item lesson-card'; div.style.marginBottom = '8px';
+            const roomLabel = l.room ? `, каб. ${l.room}` : '';
+            const extra = !l.isExam
+              ? `<div class=\"meta meta-extra\">${l.facultyName} • ${l.scheduleName} • ${l.semester}</div>`
+              : `<div class=\"meta meta-extra\">${l.scheduleName}</div>`;
             div.innerHTML = `<div class=\"time\"><strong>${l.start}-${l.end}</strong></div>
-                             <div class=\"meta\">${l.subject}${l.room ? `, каб. ${l.room}` : ''}</div>
-                             <div class=\"meta\" style=\"color:#7a8a9a; font-size:12px;\">${l.scheduleName}</div>`;
+                             <div class=\"meta meta-main\">${l.subject}${roomLabel}</div>
+                             ${extra}`;
             td.appendChild(div);
           });
         }
@@ -368,6 +382,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+function initFloatingLessonPanel() {
+  const panel = document.getElementById('floating-lesson-panel');
+  const handle = document.getElementById('floating-lesson-handle');
+  const btnOpen = document.getElementById('open-floating-lesson');
+  const btnClose = document.getElementById('floating-lesson-close');
+  if (!panel || !handle || !btnOpen || !btnClose) return;
+
+  const show = () => { panel.style.display = 'block'; populateProfessorForm(); };
+  const hide = () => { panel.style.display = 'none'; };
+
+  btnOpen.addEventListener('click', show);
+  btnClose.addEventListener('click', hide);
+
+  // Dragging
+  let dragging = false; let startX = 0; let startY = 0; let origLeft = 0; let origTop = 0;
+  const onMouseDown = (e) => {
+    dragging = true;
+    const rect = panel.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY; origLeft = rect.left; origTop = rect.top;
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+  const onMouseMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX; const dy = e.clientY - startY;
+    let newLeft = origLeft + dx; let newTop = origTop + dy;
+    // Ограничения по окну
+    const maxLeft = window.innerWidth - panel.offsetWidth - 8; const maxTop = window.innerHeight - panel.offsetHeight - 8;
+    newLeft = Math.max(8, Math.min(maxLeft, newLeft));
+    newTop = Math.max(8, Math.min(maxTop, newTop));
+    panel.style.left = `${newLeft}px`; panel.style.top = `${newTop}px`;
+    panel.style.right = 'auto'; // при перетаскивании используем left
+  };
+  const onMouseUp = () => {
+    dragging = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  };
+  handle.addEventListener('mousedown', onMouseDown);
+}
+
+// Инициализация страницы
 export function initProfessorPage() {
   const typeSelect = document.getElementById('prof-exam-select');
   const btnSchedule = document.getElementById('prof-view-schedule-btn');
@@ -387,6 +443,7 @@ export function initProfessorPage() {
   // Стартовое состояние
   if (!localStorage.getItem('professorView')) setProfView('schedule'); else setProfView(localStorage.getItem('professorView'));
   renderCurrentView();
+  initFloatingLessonPanel();
 }
 
 window.initProfessorPage = initProfessorPage;
