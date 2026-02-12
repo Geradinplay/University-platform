@@ -6,7 +6,7 @@
 
 import { checkCollision } from '../utils/collisionDetector.js';
 import { parseTimeToMinutes } from '../utils/utils.js';
-import { updateLessonDay, createBreak, updateBreak } from '../../../api/api.js';
+import { updateLessonDay, createBreak, updateBreak, getSchedules, getLessonsByScheduleId, getScheduleById } from '../../../api/api.js';
 import { showModal, showConflictConfirmationModal } from '../modal.js'; // Импортируем showModal и showConflictConfirmationModal
 
 let draggedElement = null;
@@ -21,9 +21,13 @@ window.drop = drop;
  */
 export function allowDrop(ev) {
     ev.preventDefault();
-    const target = ev.target.closest('.day') || ev.target.closest('#buffer-content') || (ev.currentTarget.classList.contains('dropzone') ? ev.currentTarget : null);
+    // Находим корректный контейнер для подсветки
+    const day = ev.target.closest('.day');
+    const buffer = ev.target.closest('#buffer-content');
+    const td = ev.target.closest('td');
+    const target = day || buffer || (td?.querySelector('.day')) || (ev.currentTarget.classList.contains('dropzone') ? ev.currentTarget.querySelector('.day') || ev.currentTarget : null);
     if (target) {
-        target.style.backgroundColor = '#eef4f8';
+        (target.classList?.contains('day') ? target : target.querySelector?.('.day') || target).style.backgroundColor = '#eef4f8';
     }
 }
 
@@ -62,15 +66,19 @@ export async function drop(ev) {
     // Снимаем подсветку
     document.querySelectorAll('.dropzone, .day, #buffer-content').forEach(target => target.style.backgroundColor = '');
 
-    let targetContainer = ev.target.closest('.day') || ev.target.closest('#buffer-content');
-    if (!targetContainer && ev.currentTarget.classList.contains('dropzone')) {
-        targetContainer = ev.currentTarget.querySelector('.day');
-    }
+    // Находим целевой .day контейнер максимально надёжно
+    let targetContainer = ev.target.closest('.day')
+        || ev.target.closest('#buffer-content')
+        || (ev.target.closest('td')?.querySelector('.day'))
+        || (ev.currentTarget.classList.contains('dropzone') ? ev.currentTarget.querySelector('.day') : null);
     if (!targetContainer) return;
 
     const isToBuffer = targetContainer.id === 'buffer-content' || targetContainer.closest('#buffer-content');
     const newDay = isToBuffer ? 0 : parseInt(targetContainer.dataset.dayIndex);
     const oldDay = el.dataset.day ? parseInt(el.dataset.day) : null;
+
+    // Функция для названия дня
+    const getDayNameLocal = (d) => ({1:'Понедельник',2:'Вторник',3:'Среда',4:'Четверг',5:'Пятница'})[d] || String(d);
 
     // --- ЛОГИКА ДЛЯ ПЕРЕРЫВА (BREAK-BLOCK) ---
     if (el.classList.contains('break-block')) {
@@ -102,15 +110,30 @@ export async function drop(ev) {
             const timeStr = el.querySelector('.lesson-time').innerText;
             const allowCollision = document.getElementById('settings-content')?.querySelector('#allowCollision')?.checked || false;
 
-            // Проверка стандартных коллизий времени
-            if (!allowCollision && checkCollision(timeStr, targetContainer, el.id)) {
-                showModal("Ошибка перетаскивания", "В это время уже есть другое занятие.");
-                return;
+            // БАЗОВАЯ проверка пересечения времени
+            if (checkCollision(timeStr, targetContainer, el.id)) {
+                if (!allowCollision) {
+                    // Пересечения запрещены — просто информируем и отменяем перенос
+                    showModal('Ошибка перетаскивания', `В ${getDayNameLocal(newDay)} уже есть другое занятие в это время.`);
+                    return;
+                } else {
+                    // Пересечения разрешены — позволяем подтвердить добавление
+                    showConflictConfirmationModal(
+                        `В ${getDayNameLocal(newDay)} уже есть другое занятие в это время.`,
+                        async () => {
+                            await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
+                        },
+                        () => {
+                            console.log('Перетаскивание отменено из-за базовой коллизии времени.');
+                        }
+                    );
+                    return;
+                }
             }
 
-            // ДОБАВЛЕНО: Проверка занятости кабинетов и профессоров
+            // Проверка занятости кабинетов и профессоров в текущем дне/контейнере
             const checkClassroomBusy = document.getElementById('checkClassroomBusy')?.checked;
-            const checkProfessorBusy = document.getElementById('checkProfessorBusy')?.checked;
+            const checkProfessorBusy = document.getElementById('checkProfessorBusy')?.checked || false;
 
             if (checkClassroomBusy || checkProfessorBusy) {
                 const [startTimeStr, endTimeStr] = timeStr.split('-');
@@ -137,31 +160,47 @@ export async function drop(ev) {
 
                     if (hasTimeConflict) {
                         if (checkClassroomBusy && lessonClassroomId === otherLesson.dataset.classroomId) {
-                            const classroomNumber = otherLesson.textContent.match(/\d+/)?.[0] || 'неизвестного';
-                            conflictMessages.push(`❌ Кабинет ${classroomNumber} уже занят в это время (${otherTimeStr})`);
+                            const classroomNumber = otherLesson.dataset.classroomNumber || otherLesson.textContent.match(/\d+/)?.[0] || 'неизвестного';
+                            conflictMessages.push(`❌ В ${getDayNameLocal(newDay)} каб. ${classroomNumber} уже занят в это время (${otherTimeStr})`);
                         }
 
                         if (checkProfessorBusy && lessonProfessorId === otherLesson.dataset.professorId) {
-                            const professorName = otherLesson.textContent.split(',')[0] || 'неизвестного преподавателя';
-                            conflictMessages.push(`❌ Преподаватель ${professorName} уже занят в это время (${otherTimeStr})`);
+                            const professorName = otherLesson.dataset.professorName || otherLesson.textContent.split(',')[0] || 'неизвестный преподаватель';
+                            conflictMessages.push(`❌ В ${getDayNameLocal(newDay)} преподаватель ${professorName} уже занят в это время (${otherTimeStr})`);
                         }
                     }
                 });
 
+                // При переносе из буфера также проверяем коллизии в других расписаниях
+                if (oldDay === 0) {
+                    const globalConflicts = await checkGlobalConflicts({
+                        day: newDay,
+                        startMin,
+                        endMin,
+                        professorId: checkProfessorBusy ? lessonProfessorId : null,
+                        classroomId: checkClassroomBusy ? lessonClassroomId : null,
+                    });
+                    conflictMessages = conflictMessages.concat(globalConflicts.map(msg => `(${getDayNameLocal(newDay)}) ${msg}`));
+                }
+
                 if (conflictMessages.length > 0) {
-                    // Если есть конфликты, показываем модальное окно подтверждения
-                    showConflictConfirmationModal(
-                        conflictMessages.join('<br>'),
-                        async () => {
-                            // Пользователь подтвердил, продолжаем добавление
-                            await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
-                        },
-                        () => {
-                            // Пользователь отменил, ничего не делаем
-                            console.log("Перетаскивание отменено из-за конфликта.");
-                        }
-                    );
-                    return; // Прерываем выполнение drop, так как модальное окно обрабатывает дальнейшие действия
+                    if (!allowCollision) {
+                        // Пересечения запрещены — показываем информативную модалку и отменяем перенос
+                        showModal('Конфликт расписания', conflictMessages.join('\n'));
+                        return;
+                    } else {
+                        // Пересечения разрешены — спрашиваем подтверждение
+                        showConflictConfirmationModal(
+                            conflictMessages.join('<br>'),
+                            async () => {
+                                await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
+                            },
+                            () => {
+                                console.log('Перетаскивание отменено из-за конфликта занятости.');
+                            }
+                        );
+                        return;
+                    }
                 }
             }
         }
@@ -304,5 +343,59 @@ async function updateBreakOnServer(el, day) {
         });
     } catch (e) {
         console.error("Ошибка при обновлении перерыва на сервере:", e);
+    }
+}
+
+// Проверка пересечения интервалов времени
+function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
+    return !(aEnd <= bStart || aStart >= bEnd);
+}
+
+// Глобальная проверка коллизий в других расписаниях (профессор/аудитория)
+async function checkGlobalConflicts({ day, startMin, endMin, professorId, classroomId }) {
+    try {
+        const conflicts = [];
+        // Определяем тип текущего расписания (экзамены/учебное)
+        const currentScheduleId = Number(localStorage.getItem('currentScheduleId') || 0);
+        let currentIsExam = null;
+        if (currentScheduleId) {
+            try {
+                const curSch = await getScheduleById(currentScheduleId);
+                currentIsExam = !!curSch?.isExam;
+            } catch (e) {
+                console.warn('Не удалось получить текущий тип расписания:', e);
+            }
+        }
+        const schedules = await getSchedules();
+        for (const sch of (schedules || [])) {
+            // Если известно, какой тип текущего расписания — проверяем конфликты только в расписаниях того же типа
+            if (currentIsExam !== null && !!sch.isExam !== currentIsExam) {
+                continue;
+            }
+            try {
+                const lessons = await getLessonsByScheduleId(sch.id);
+                for (const l of (lessons || [])) {
+                    const lDay = Number(l.day);
+                    if (lDay !== day) continue;
+                    const otherStartMin = parseTimeToMinutes(l.startTime);
+                    const otherEndMin = parseTimeToMinutes(l.endTime);
+                    if (!intervalsOverlap(startMin, endMin, otherStartMin, otherEndMin)) continue;
+                    const otherProfessorId = String(l.user?.id || l.professor?.id || '');
+                    const otherClassroomId = String(l.classroom?.id || l.classroomId || '');
+                    if (professorId && otherProfessorId && String(professorId) === String(otherProfessorId)) {
+                        conflicts.push(`❌ Преподаватель ${l.user?.name || l.professor?.name || 'неизвестный'} имеет занятие ${l.subject?.name || ''} в ${l.classroom?.number || ''} (${l.startTime}-${l.endTime}) в расписании "${sch.name}"`);
+                    }
+                    if (classroomId && otherClassroomId && String(classroomId) === String(otherClassroomId)) {
+                        conflicts.push(`❌ Кабинет ${l.classroom?.number || 'неизвестный'} занят занятием ${l.subject?.name || ''} (${l.startTime}-${l.endTime}) в расписании "${sch.name}"`);
+                    }
+                }
+            } catch (e) {
+                // Игнорируем ошибки загрузки отдельных расписаний
+            }
+        }
+        return conflicts;
+    } catch (e) {
+        console.warn('Глобальная проверка коллизий не удалась:', e);
+        return [];
     }
 }
