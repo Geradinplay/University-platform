@@ -77,6 +77,34 @@
     .lesson-context-menu ul { list-style:none; margin:0; padding:6px; }
     .lesson-context-menu li { padding:8px 10px; cursor:pointer; border-radius:6px; }
     .lesson-context-menu li:hover { background:#ffecec; color:#b00020; }
+
+    /* Индикатор статуса соединения */
+    .connection-status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 3000;
+    }
+
+    .connection-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #28a745;
+      margin-right: 8px;
+    }
+
+    .connection-text {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -184,6 +212,12 @@
         <button id="prof-conflict-confirm" class="app-modal-close-btn" style="background: #dc3545;">Всеравно добавить</button>
       </div>
     </div>
+  </div>
+
+  <!-- Индикатор статуса соединения -->
+  <div id="connection-status" class="connection-status">
+    <span class="connection-dot"></span>
+    <span class="connection-text"></span>
   </div>
 </div>
 

@@ -1,13 +1,7 @@
-let modalTimeout;
+(function(){
+  let modalTimeout;
 
-/**
- * Показывает красивое модальное окно с заданным заголовком и сообщением.
- * Автоматически скрывает его через заданное время.
- * @param {string} title - Заголовок модального окна.
- * @param {string} message - Сообщение, отображаемое в модальном окне.
- * @param {number} duration - Длительность отображения модального окна в миллисекундах (по умолчанию 3000 мс).
- */
-export function showModal(title, message, duration = 3000) {
+  function showModal(title, message, duration = 3000) {
     const modal = document.getElementById('app-modal');
     const modalTitle = document.getElementById('app-modal-title');
     const modalMessage = document.getElementById('app-modal-message');
@@ -33,16 +27,10 @@ export function showModal(title, message, duration = 3000) {
     }, duration);
 
     // Добавляем обработчик для кнопки закрытия
-    modalCloseBtn.onclick = () => hideModal();
-}
+    if (modalCloseBtn) modalCloseBtn.onclick = () => hideModal();
+  }
 
-/**
- * Показывает модальное окно подтверждения конфликта.
- * @param {string} message - Сообщение о конфликте.
- * @param {function} onConfirm - Функция, вызываемая при подтверждении.
- * @param {function} onCancel - Функция, вызываемая при отмене.
- */
-export function showConflictConfirmationModal(message, onConfirm, onCancel) {
+  function showConflictConfirmationModal(message, onConfirm, onCancel) {
     const conflictModal = document.getElementById('conflict-modal');
     const conflictDetails = document.getElementById('conflict-details');
     const conflictConfirmBtn = document.getElementById('conflict-confirm');
@@ -58,33 +46,35 @@ export function showConflictConfirmationModal(message, onConfirm, onCancel) {
 
     conflictConfirmBtn.onclick = () => {
         conflictModal.classList.remove('active');
-        onConfirm();
+        if (onConfirm) onConfirm();
     };
 
     conflictCancelBtn.onclick = () => {
         conflictModal.classList.remove('active');
-        onCancel();
+        if (onCancel) onCancel();
     };
 
     // Закрытие по клику вне модального окна (опционально)
     conflictModal.onclick = (e) => {
         if (e.target === conflictModal) {
             conflictModal.classList.remove('active');
-            onCancel();
+            if (onCancel) onCancel();
         }
     };
-}
+  }
 
-/**
- * Скрывает модальное окно.
- */
-export function hideModal() {
+  function hideModal() {
     const modal = document.getElementById('app-modal');
     if (modal) {
-        modal.classList.remove('active');
-        if (modalTimeout) {
-            clearTimeout(modalTimeout);
-            modalTimeout = null;
-        }
+      modal.classList.remove('active');
+      if (modalTimeout) {
+        clearTimeout(modalTimeout);
+        modalTimeout = null;
+      }
     }
-}
+  }
+
+  window.showModal = showModal;
+  window.showConflictConfirmationModal = showConflictConfirmationModal;
+  window.hideModal = hideModal;
+})();

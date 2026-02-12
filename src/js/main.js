@@ -507,7 +507,7 @@ window.editSchedule = async function() {
     const isExam = document.getElementById('editScheduleIsExam').checked;
 
     if (!scheduleId) {
-        alert('Выберите расписание!');
+        alert('Выберите расписани��!');
         return;
     }
     if (!name) {
@@ -865,11 +865,12 @@ window.loadSchedule = async function() {
 
 async function loadSchedules() {
     // Сохраняем текущий выбранный факультет
-    const selectedFacultyId = document.getElementById('facultySelect').value;
+    const facultyEl = document.getElementById('facultySelect');
+    const selectedFacultyId = facultyEl ? facultyEl.value : null;
     await loadFaculties();
     // Восстанавливаем выбранный факультет после загрузки
-    if (selectedFacultyId) {
-        document.getElementById('facultySelect').value = selectedFacultyId;
+    if (selectedFacultyId && facultyEl) {
+        facultyEl.value = selectedFacultyId;
     }
 }
 
@@ -1539,7 +1540,12 @@ async function initializeApp() {
     console.log('👨‍🏫 Список преподавателей загружен');
 
     // Устанавливаем активную вкладку при загрузке страницы (например, "Создать занятие")
-    window.openTab('lesson-tab-content');
+    // Добавляем проверку, существует ли элемент перед вызовом openTab
+    if (document.getElementById('lesson-tab-content')) {
+        window.openTab('lesson-tab-content');
+    } else {
+        console.warn('Элемент #lesson-tab-content не найден. Пропускаю openTab.');
+    }
 
     // Загружаем расписание по умолчанию или последнее выбранное
     const initialScheduleId = localStorage.getItem('currentScheduleId');
@@ -1559,45 +1565,91 @@ async function initializeApp() {
     }
 
     // Обработчики для модального окна создания расписания
-    document.getElementById('create-schedule-submit').onclick = async () => {
-        await window.addSchedule();
-    };
-    document.getElementById('create-schedule-cancel').onclick = closeCreateScheduleModal;
+    const createScheduleSubmitBtn = document.getElementById('create-schedule-submit');
+    const createScheduleCancelBtn = document.getElementById('create-schedule-cancel');
+    if (createScheduleSubmitBtn) {
+        createScheduleSubmitBtn.onclick = async () => {
+            await window.addSchedule();
+        };
+    }
+    if (createScheduleCancelBtn) {
+        createScheduleCancelBtn.onclick = closeCreateScheduleModal;
+    }
 
     // Обработчики для модального окна редактирования расписания
-    document.getElementById('edit-schedule-submit').onclick = async () => {
-        await window.editSchedule();
-    };
-    document.getElementById('edit-schedule-cancel').onclick = closeEditScheduleModal;
+    const editScheduleSubmitBtn = document.getElementById('edit-schedule-submit');
+    const editScheduleCancelBtn = document.getElementById('edit-schedule-cancel');
+    if (editScheduleSubmitBtn) {
+        editScheduleSubmitBtn.onclick = async () => {
+            await window.editSchedule();
+        };
+    }
+    if (editScheduleCancelBtn) {
+        editScheduleCancelBtn.onclick = closeEditScheduleModal;
+    }
 
     // Обработчики для модального окна удаления расписания
-    document.getElementById('delete-schedule-confirm').onclick = async () => {
-        await window.deleteSchedule();
-    };
-    document.getElementById('delete-schedule-cancel').onclick = closeDeleteScheduleModal;
+    const deleteScheduleConfirmBtn = document.getElementById('delete-schedule-confirm');
+    const deleteScheduleCancelBtn = document.getElementById('delete-schedule-cancel');
+    if (deleteScheduleConfirmBtn) {
+        deleteScheduleConfirmBtn.onclick = async () => {
+            await window.deleteSchedule();
+        };
+    }
+    if (deleteScheduleCancelBtn) {
+        deleteScheduleCancelBtn.onclick = closeDeleteScheduleModal;
+    }
 
     // Обработчики для модального окна создания факультета
-    document.getElementById('create-faculty-submit').onclick = async () => {
-        await window.addFaculty();
-    };
-    document.getElementById('create-faculty-cancel').onclick = closeCreateFacultyModal;
+    const createFacultySubmitBtn = document.getElementById('create-faculty-submit');
+    const createFacultyCancelBtn = document.getElementById('create-faculty-cancel');
+    if (createFacultySubmitBtn) {
+        createFacultySubmitBtn.onclick = async () => {
+            await window.addFaculty();
+        };
+    }
+    if (createFacultyCancelBtn) {
+        createFacultyCancelBtn.onclick = closeCreateFacultyModal;
+    }
 
     // Обработчики для модального окна редактирования факультета
-    document.getElementById('edit-faculty-submit').onclick = async () => {
-        await window.editFaculty();
-    };
-    document.getElementById('edit-faculty-cancel').onclick = closeEditFacultyModal;
+    const editFacultySubmitBtn = document.getElementById('edit-faculty-submit');
+    const editFacultyCancelBtn = document.getElementById('edit-faculty-cancel');
+    if (editFacultySubmitBtn) {
+        editFacultySubmitBtn.onclick = async () => {
+            await window.editFaculty();
+        };
+    }
+    if (editFacultyCancelBtn) {
+        editFacultyCancelBtn.onclick = closeEditFacultyModal;
+    }
 
     // Обработчики для модального окна удаления факультета
-    document.getElementById('delete-faculty-confirm').onclick = async () => {
-        await window.deleteFaculty();
-    };
-    document.getElementById('delete-faculty-cancel').onclick = closeDeleteFacultyModal;
+    const deleteFacultyConfirmBtn = document.getElementById('delete-faculty-confirm');
+    const deleteFacultyCancelBtn = document.getElementById('delete-faculty-cancel');
+    if (deleteFacultyConfirmBtn) {
+        deleteFacultyConfirmBtn.onclick = async () => {
+            await window.deleteFaculty();
+        };
+    }
+    if (deleteFacultyCancelBtn) {
+        deleteFacultyCancelBtn.onclick = closeDeleteFacultyModal;
+    }
 
     // Обработчик для переключения вида расписания
-    document.getElementById('schedule-tab-btn').onclick = () => switchScheduleView('schedule');
-    document.getElementById('classroom-tab-btn').onclick = () => switchScheduleView('classroom');
-    document.getElementById('professor-tab-btn').onclick = () => switchScheduleView('professor');
+    const scheduleTabBtn = document.getElementById('schedule-tab-btn');
+    const classroomTabBtn = document.getElementById('classroom-tab-btn');
+    const professorTabBtn = document.getElementById('professor-tab-btn');
+
+    if (scheduleTabBtn) {
+        scheduleTabBtn.onclick = () => switchScheduleView('schedule');
+    }
+    if (classroomTabBtn) {
+        classroomTabBtn.onclick = () => switchScheduleView('classroom');
+    }
+    if (professorTabBtn) {
+        professorTabBtn.onclick = () => switchScheduleView('professor');
+    }
 }
 
 // ===== Переключение вида расписания (по дням / занятость комнат) =====
@@ -2053,4 +2105,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
 

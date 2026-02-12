@@ -7,7 +7,6 @@
 import { checkCollision } from '../utils/collisionDetector.js';
 import { parseTimeToMinutes } from '../utils/utils.js';
 import { updateLessonDay, createBreak, updateBreak, getSchedules, getLessonsByScheduleId, getScheduleById } from '../../../api/api.js';
-import { showModal, showConflictConfirmationModal } from '../modal.js'; // Импортируем showModal и showConflictConfirmationModal
 
 let draggedElement = null;
 
@@ -114,18 +113,14 @@ export async function drop(ev) {
             if (checkCollision(timeStr, targetContainer, el.id)) {
                 if (!allowCollision) {
                     // Пересечения запрещены — просто информируем и отменяем перенос
-                    showModal('Ошибка перетаскивания', `В ${getDayNameLocal(newDay)} уже есть другое занятие в это время.`);
+                    window.showModal && window.showModal('Ошибка перетаскивания', `В ${getDayNameLocal(newDay)} уже есть другое занятие в это время.`);
                     return;
                 } else {
                     // Пересечения разрешены — позволяем подтвердить добавление
-                    showConflictConfirmationModal(
+                    window.showConflictConfirmationModal && window.showConflictConfirmationModal(
                         `В ${getDayNameLocal(newDay)} уже есть другое занятие в это время.`,
-                        async () => {
-                            await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
-                        },
-                        () => {
-                            console.log('Перетаскивание отменено из-за базовой коллизии времени.');
-                        }
+                        async () => { await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId); },
+                        () => { console.log('Перетаскивание отменено из-за базовой коллизии времени.'); }
                     );
                     return;
                 }
@@ -186,18 +181,14 @@ export async function drop(ev) {
                 if (conflictMessages.length > 0) {
                     if (!allowCollision) {
                         // Пересечения запрещены — показываем информативную модалку и отменяем перенос
-                        showModal('Конфликт расписания', conflictMessages.join('\n'));
+                        window.showModal && window.showModal('Конфликт расписания', conflictMessages.join('\n'));
                         return;
                     } else {
                         // Пересечения разрешены — спрашиваем подтверждение
-                        showConflictConfirmationModal(
+                        window.showConflictConfirmationModal && window.showConflictConfirmationModal(
                             conflictMessages.join('<br>'),
-                            async () => {
-                                await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId);
-                            },
-                            () => {
-                                console.log('Перетаскивание отменено из-за конфликта занятости.');
-                            }
+                            async () => { await proceedWithLessonDrop(el, targetContainer, isToBuffer, newDay, oldDay, lessonId); },
+                            () => { console.log('Перетаскивание отменено из-за конфликта занятости.'); }
                         );
                         return;
                     }

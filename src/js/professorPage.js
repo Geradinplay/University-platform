@@ -2,6 +2,7 @@ import { getSchedules, getLessonsByScheduleId } from '../../api/api.js';
 import { getSubjects, getClassrooms, createLesson } from '../../api/api.js';
 import { getFaculties } from '../../api/api.js';
 import { deleteLesson } from '../../api/api.js';
+import { connectionManager } from './utils/connectionManager.js';
 
 function parseTimeToMinutes(t) { const [h,m] = String(t).split(':').map(Number); return h*60+m; }
 function overlaps(aStart, aEnd, bStart, bEnd) { return !(aEnd <= bStart || aStart >= bEnd); }
@@ -193,7 +194,7 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
         for (const l of schLessons) {
           const professorObj = l.user || l.professor;
           const day = Number(l.day); if (day < 1 || day > 5) continue;
-          const semesterName = sch.semesterName || sch.semester || sch.term || '-';
+          const semesterName = sch.semesterName || sch.term || '';
           const semesterNum = sch.semesterNumber ?? sch.semesterIndex ?? (isNaN(Number(sch.semester)) ? undefined : Number(sch.semester));
           const entryCommon = {
             id: l.id,
@@ -241,8 +242,9 @@ async function loadProfessorWeeklySchedule(view = 'schedule') {
             const roomLabel = l.room ? `, каб. ${l.room}` : '';
             const extra = !l.isExam
               ? `<div class=\"meta meta-extra\">${l.facultyName}</div>
-                 <div class=\"meta meta-extra\">${l.semesterName}</div>
-                 <div class=\"meta meta-extra\">семестр ${l.semesterNum}</div>`
+                 <div class=\"meta meta-extra\">${l.scheduleName}</div>
+                 ${l.semesterName ? `<div class=\"meta meta-extra\">${l.semesterName}</div>` : ''}
+                 ${l.semesterNum && l.semesterNum !== '-' ? `<div class=\"meta meta-extra\">семестр ${l.semesterNum}</div>` : ''}`
               : `<div class=\"meta meta-extra\">${l.scheduleName}</div>`;
             div.innerHTML = `<div class=\"time\" style=\"display:flex; justify-content:space-between; align-items:center;\"><strong>${l.start}-${l.end}</strong></div>
                              <div class=\"meta meta-main\">${l.subject}${roomLabel}</div>
@@ -526,3 +528,35 @@ export function initProfessorPage() {
 }
 
 window.initProfessorPage = initProfessorPage;
+
+// ===== Менеджер подключения на странице профессора =====
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Проверка наличия ключевых элементов страницы; если их нет — выходим
+    const hasProfessorUI = !!document.getElementById('schedule-grid');
+    if (!hasProfessorUI) return;
+
+    // Инициализация через ConnectionManager: при первом подключении запускаем страницу
+    await connectionManager.initialize(() => {
+      try {
+        initProfessorPage();
+      } catch (e) {
+        console.error('initProfessorPage() error:', e);
+      }
+    });
+
+    // При восстановлении соединения — обновляем форму и текущее представление
+    connectionManager.onReconnection(async () => {
+      try {
+        await populateProfessorForm();
+        await renderCurrentView();
+      } catch (e) {
+        console.error('Ошибка обновления страницы профессора после реконнекта:', e);
+      }
+    });
+  } catch (e) {
+    console.error('Ошибка запуска ConnectionManager на professor.html:', e);
+    // Резервный запуск без менеджера
+    try { initProfessorPage(); } catch {}
+  }
+});
