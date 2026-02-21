@@ -1,5 +1,0 @@
-.tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #3f6ea5; }
-.tab-btn { padding: 10px 20px; border: none; cursor: pointer; background: #d1d8e0; border-radius: 8px 8px 0 0; }
-.tab-btn.active { background: #3f6ea5; color: white; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }

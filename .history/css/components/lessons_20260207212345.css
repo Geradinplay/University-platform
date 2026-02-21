@@ -1,6 +1,0 @@
-.lesson { background: white; border: 1px solid #aaa; padding: 10px; border-radius: 8px; cursor: grab; width: 100%; max-width: 240px; }
-.day .lesson { max-width: none; }
-.lesson-title { font-weight: bold; font-size: 16px; }
-.lesson-time { margin-top: 5px; border-top: 1px solid #eee; text-align: center; font-weight: bold; }
-
-.break-block { background: #e3f2fd; border: 1px dashed #2196f3; color: #0d47a1; padding: 6px; margin: 5px 0; border-radius: 6px; text-align: center; font-size: 11px; font-weight: bold; }
